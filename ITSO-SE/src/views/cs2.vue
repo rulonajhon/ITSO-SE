@@ -1,180 +1,338 @@
 <template>
-    <div class="page-wrapper">
-      <Navbar />
-      
-      <!-- Banner Image -->
-      <div class="banner-wrapper">
-        <img src="../assets/banner.png" alt="ITSO Banner" class="banner-image" />
-      </div>
-  
-      <!-- Content -->
-      <div class="container">
-        <!-- Vision Section -->
-        <div class="section">
-          <h2>Vision</h2>
-          <p>
-            To simplify and secure IP management while fostering innovation and collaboration.
-          </p>
+  <div class="page-wrapper">
+    <!-- Navbar Component -->
+    <Navbar />
+
+    <!-- Main Content -->
+    <div class="content-container">
+      <div class="submission-form">
+        <!-- Progress Section -->
+        <div class="progress-section">
+          <h2 class="section-title">Submission Progress</h2>
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+            <div class="progress-steps">
+              <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-label">Basic Information</div>
+              </div>
+              <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-label">Documents</div>
+              </div>
+              <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-label">Review</div>
+              </div>
+            </div>
+          </div>
         </div>
-  
-        <!-- Mission Section -->
-        <div class="section">
-          <h2>Mission</h2>
-          <p>
-            To provide an innovative and user-friendly IP management system that streamlines the submission and 
-            protection process, ensuring data security and compliance while fostering a culture of innovation.
-          </p>
+
+        <!-- Attachments Section -->
+        <div class="attachments-section">
+          <h3 class="section-title">5. Attachments</h3>
+          
+          <div class="document-upload">
+            <h4 class="document-title">Event/Publication Guidelines</h4>
+            <div class="document-container">
+              <div class="document-info">
+                <p class="upload-text">Upload Document</p>
+                <p class="file-info">Only PDF files are accepted</p>
+              </div>
+              <div class="document-actions">
+                <button class="btn btn-check">Check Document</button>
+                <button class="btn btn-upload">Upload</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="document-upload">
+            <h4 class="document-title">Request Document</h4>
+            <div class="document-container">
+              <div class="document-info">
+                <p class="upload-text">Upload Document</p>
+                <p class="file-info">Only PDF files are accepted</p>
+              </div>
+              <div class="document-actions">
+                <button class="btn btn-view">View Sample Format</button>
+                <button class="btn btn-upload">Upload</button>
+              </div>
+            </div>
+          </div>
         </div>
-  
-        <!-- Overview Section -->
-        <div class="section">
-          <h2>Overview</h2>
-          <p>
-            UIC's Innovation & Technology Support Office (ITSO) protects intellectual property, helps researchers manage 
-            IP, supports technology transfer, and assists with commercialization and legal IP matters.
-          </p>
+
+        <!-- Navigation Buttons -->
+        <div class="navigation">
+          <button class="btn btn-nav" @click="goBack">Back</button>
+          <button class="btn btn-nav" @click="goNext">Next</button>
         </div>
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import Navbar from "../components/navigationbar.vue";
-  </script>
-  
-  <style>
-  /* Global reset */
-  body, html {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-    width: 100%;
+  </div>
+</template>
+
+<script setup>
+import Navbar from "../components/navigationbar.vue";
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const goNext = () => {
+  router.push("/cs3");
+};
+const goBack = () => {
+  router.push("/cs1");
+};
+</script>
+
+<style>
+/* Reset and Global Styles */
+body, html {
+  background-color: white !important;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  margin-bottom: 2%;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Page Layout */
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.content-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  background-color: white;
+  margin-top: 2rem; /* Add margin between navbar and content */
+}
+
+.submission-form {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Progress Section */
+.progress-section {
+  margin-bottom: 40px;
+  text-align: center;
+  width: 100%;
+}
+
+.section-title {
+  color: #FF8BA7;
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.progress-container {
+  position: relative;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 33.33%; /* For first step */
+  background-color: #FF8BA7;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  width: 100%;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  background-color: #f0f0f0;
+  color: #666;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  margin-top: -16px;
+  margin-bottom: 8px;
+}
+
+.step:first-child .step-number {
+  background-color: #FF8BA7;
+  color: white;
+}
+
+.step-label {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
+.step:first-child .step-label {
+  color: #FF8BA7;
+  font-weight: 700;
+}
+
+/* Attachments Section */
+.attachments-section {
+  margin-bottom: 32px;
+  width: 100%;
+}
+
+.document-upload {
+  margin-bottom: 24px;
+}
+
+.document-title {
+  color: #FF8BA7;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.document-container {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.document-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-text {
+  color: #FF8BA7;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.file-info {
+  color: #FF8BA7;
+  font-size: 12px;
+}
+
+.document-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Button Styles */
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-check, .btn-view, .btn-upload {
+  background-color: #FF8BA7;
+  color: white;
+}
+
+.btn-check:hover:not(:disabled), 
+.btn-view:hover:not(:disabled), 
+.btn-upload:hover:not(:disabled) {
+  background-color: #ff7a9a;
+}
+
+.navigation {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 32px;
+  width: 100%;
+}
+
+.btn-nav {
+  background-color: #FF8BA7;
+  color: white;
+  padding: 8px 32px;
+  border-radius: 20px;
+}
+
+.btn-nav:hover:not(:disabled) {
+  background-color: #ff7a9a;
+}
+
+.hidden-input {
+  display: none;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .document-container {
+    flex-direction: column;
+    align-items: flex-start;
   }
-  
-  /* Page wrapper */
-  .page-wrapper {
+
+  .document-actions {
+    margin-top: 16px;
     width: 100%;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
+    justify-content: flex-end;
   }
-  
-  /* Banner styles */
-  .banner-wrapper {
-    width: 100%;
-    height: 50vh; /* Reduced height for smaller screens */
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
+}
+
+@media (max-width: 480px) {
+  .progress-steps {
     position: relative;
+    margin-top: 24px;
   }
-  
-  .banner-image {
+
+  .document-actions {
+    flex-direction: column;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center; /* Ensure image is centered */
-    display: block;
   }
-  
-  /* Container for content */
-  .container {
+
+  .btn {
     width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 40px 20px;
-    box-sizing: border-box;
   }
-  
-  /* Section styling - Now centered */
-  .section {
-    text-align: center; /* Changed from left to center */
-    margin-bottom: 40px;
-    padding: 0 20px;
+
+  .navigation {
+    flex-direction: column;
   }
-  
-  .section:last-child {
-    margin-bottom: 0;
-  }
-  
-  /* Typography */
-  h2 {
-    color: #f47b91;
-    font-size: 32px;
-    margin-bottom: 15px;
-    font-weight: bold;
-    text-align: center; /* Ensure headings are centered */
-  }
-  
-  p {
-    color: #000000;
-    font-size: 16px;
-    line-height: 1.5;
-    margin: 0;
-    text-align: center; /* Ensure paragraphs are centered */
-  }
-  
-  /* Media Queries for different screen sizes */
-  /* For 1024x600 and similar resolutions */
-  @media (max-width: 1024px) and (max-height: 768px) {
-    .banner-wrapper {
-      height: 40vh; /* Smaller banner for smaller screens */
-    }
-    
-    .container {
-      padding: 30px 15px;
-    }
-    
-    .section {
-      margin-bottom: 30px;
-    }
-    
-    h2 {
-      font-size: 28px;
-    }
-    
-    p {
-      font-size: 15px;
-    }
-  }
-  
-  /* For mobile devices */
-  @media (max-width: 768px) {
-    .banner-wrapper {
-      height: 30vh;
-    }
-    
-    .container {
-      padding: 20px 15px;
-    }
-    
-    .section {
-      margin-bottom: 25px;
-    }
-    
-    h2 {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-    
-    p {
-      font-size: 14px;
-    }
-  }
-  
-  /* For very small screens */
-  @media (max-width: 480px) {
-    .banner-wrapper {
-      height: 25vh;
-    }
-    
-    h2 {
-      font-size: 22px;
-    }
-    
-    p {
-      font-size: 13px;
-    }
-  }
-  </style>
+}
+</style>

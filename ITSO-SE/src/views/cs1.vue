@@ -163,6 +163,9 @@
   <script setup>
   import { ref } from 'vue';
   import Navbar from "../components/navigationbar.vue";
+  import { useRouter } from 'vue-router';
+
+  const router = useRouter();
   
   const formData = ref({
     // Applicant Information
@@ -185,26 +188,10 @@
     ipProtection: 'with',
   });
   
-  const currentStep = ref(1);
-  const totalSteps = 3;
-  
-  const goNext = () => {
-    if (currentStep.value < totalSteps) {
-      currentStep.value++;
-    } else {
-      submitForm();
-    }
-  };
-  
-  const goBack = () => {
-    if (currentStep.value > 1) {
-      currentStep.value--;
-    }
-  };
-  
   const submitForm = () => {
     // Handle form submission
     console.log('Form submitted:', formData.value);
+    router.push('/cs2');
     // You would typically send this data to a server
   };
   </script>

@@ -198,8 +198,8 @@
             
             <!-- Form Navigation -->
             <div class="form-navigation">
-              <button type="button" class="btn btn-back">Back</button>
-              <button type="button" class="btn btn-submit">Submit</button>
+              <button type="button" class="btn btn-back" @click="goBack">Back</button>
+              <button type="button" class="btn btn-submit" @click="Submit">Submit</button>
             </div>
           </form>
         </div>
@@ -209,6 +209,16 @@
   
   <script setup>
   import Navbar from "../components/navigationbar.vue";
+  import { useRouter } from 'vue-router';
+
+  const router = useRouter();
+
+  const goBack = () => {
+    router.push("/cs2");
+  };
+  const Submit = () => {
+    router.push("/");
+  };
   </script>
   
   <style>
