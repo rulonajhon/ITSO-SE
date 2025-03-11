@@ -1,180 +1,269 @@
 <template>
-    <div class="page-wrapper">
-      <Navbar />
-      
-      <!-- Banner Image -->
-      <div class="banner-wrapper">
-        <img src="../assets/banner.png" alt="ITSO Banner" class="banner-image" />
+  <div class="container">
+    <div class="login-box">
+      <!-- University Logo -->
+      <img src="../assets/logo.png" alt="University Logo" class="logo">
+
+      <!-- Title -->
+      <div class="title-wrapper">
+        <h1 class="university-title">University of Immaculate Conception</h1>
+        <h2 class="itso-title">ITSO</h2>
       </div>
-  
-      <!-- Content -->
-      <div class="container">
-        <!-- Vision Section -->
-        <div class="section">
-          <h2>Vision</h2>
-          <p>
-            To simplify and secure IP management while fostering innovation and collaboration.
-          </p>
-        </div>
-  
-        <!-- Mission Section -->
-        <div class="section">
-          <h2>Mission</h2>
-          <p>
-            To provide an innovative and user-friendly IP management system that streamlines the submission and 
-            protection process, ensuring data security and compliance while fostering a culture of innovation.
-          </p>
-        </div>
-  
-        <!-- Overview Section -->
-        <div class="section">
-          <h2>Overview</h2>
-          <p>
-            UIC's Innovation & Technology Support Office (ITSO) protects intellectual property, helps researchers manage 
-            IP, supports technology transfer, and assists with commercialization and legal IP matters.
-          </p>
-        </div>
+
+      <!-- Signup Form -->
+      <div class="form-container">
+        <form @submit.prevent="handleSignup">
+          <div class="input-group">
+            <label for="fullName">Full Name</label>
+            <input 
+              id="fullName"
+              type="text" 
+              v-model="formData.fullName" 
+              placeholder="Please fill out this field."
+              required 
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="username">Username</label>
+            <input 
+              id="username"
+              type="text" 
+              v-model="formData.username" 
+              placeholder="Please fill out this field."
+              required 
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="email">Email Address (UIC Email Only)</label>
+            <input 
+              id="email"
+              type="email" 
+              v-model="formData.email" 
+              placeholder="Please fill out this field."
+              pattern=".*@uic\.edu\.ph"
+              title="Please use your UIC email address"
+              required 
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="password">Password</label>
+            <input 
+              id="password"
+              type="password" 
+              v-model="formData.password" 
+              placeholder="Please fill out this field."
+              required 
+            />
+          </div>
+
+          <div class="button-group">
+            <button type="button" class="back-btn" @click="goBack">Back</button>
+            <button type="submit" class="signup-btn">Sign Up</button>
+          </div>
+        </form>
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import Navbar from "../components/navigationbar.vue";
-  </script>
-  
-  <style>
-  /* Global reset */
-  body, html {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-    width: 100%;
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const formData = ref({
+  fullName: '',
+  username: '',
+  email: '',
+  password: ''
+});
+
+const handleSignup = () => {
+  // Handle signup logic here
+  console.log('Signup attempt:', formData.value);
+};
+
+const goBack = () => {
+  router.push('/login');
+};
+</script>
+
+<style>
+/* Reset default margins and padding */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Container styles */
+.container {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: url('../assets/image.png') no-repeat center center;
+  background-size: cover;
+  position: relative;
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+.login-box {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1.75rem;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.logo {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 0.5rem;
+}
+
+.title-wrapper {
+  margin-bottom: 1rem;
+}
+
+.university-title {
+  font-size: 1.25rem;
+  color: #333;
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+}
+
+.itso-title {
+  font-size: 1.75rem;
+  color: #ff4d7e;
+  margin: 0;
+  font-weight: bold;
+}
+
+.form-container {
+  margin: 1rem 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.input-group {
+  text-align: left;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #333;
+  font-size: 0.85rem;
+}
+
+input {
+  padding: 0.75rem;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+input:focus {
+  border-color: #ff4d7e;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.back-btn, .signup-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  flex: 1;
+  transition: background-color 0.2s;
+}
+
+.back-btn {
+  background: #e2e8f0;
+  color: #333;
+}
+
+.back-btn:hover {
+  background: #cbd5e1;
+}
+
+.signup-btn {
+  background: #ff4d7e;
+  color: white;
+}
+
+.signup-btn:hover {
+  background: #ff3366;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .login-box {
+    margin: 1rem;
+    padding: 1.25rem;
+    max-height: 80vh;
   }
-  
-  /* Page wrapper */
-  .page-wrapper {
-    width: 100%;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
+
+  .university-title {
+    font-size: 1.1rem;
   }
-  
-  /* Banner styles */
-  .banner-wrapper {
-    width: 100%;
-    height: 50vh; /* Reduced height for smaller screens */
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-    position: relative;
+
+  .itso-title {
+    font-size: 1.5rem;
   }
-  
-  .banner-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center; /* Ensure image is centered */
-    display: block;
+
+  input, .back-btn, .signup-btn {
+    padding: 0.65rem;
   }
-  
-  /* Container for content */
-  .container {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 40px 20px;
-    box-sizing: border-box;
+
+  .button-group {
+    flex-direction: column;
   }
-  
-  /* Section styling - Now centered */
-  .section {
-    text-align: center; /* Changed from left to center */
-    margin-bottom: 40px;
-    padding: 0 20px;
-  }
-  
-  .section:last-child {
-    margin-bottom: 0;
-  }
-  
-  /* Typography */
-  h2 {
-    color: #f47b91;
-    font-size: 32px;
-    margin-bottom: 15px;
-    font-weight: bold;
-    text-align: center; /* Ensure headings are centered */
-  }
-  
-  p {
-    color: #000000;
-    font-size: 16px;
-    line-height: 1.5;
-    margin: 0;
-    text-align: center; /* Ensure paragraphs are centered */
-  }
-  
-  /* Media Queries for different screen sizes */
-  /* For 1024x600 and similar resolutions */
-  @media (max-width: 1024px) and (max-height: 768px) {
-    .banner-wrapper {
-      height: 40vh; /* Smaller banner for smaller screens */
-    }
-    
-    .container {
-      padding: 30px 15px;
-    }
-    
-    .section {
-      margin-bottom: 30px;
-    }
-    
-    h2 {
-      font-size: 28px;
-    }
-    
-    p {
-      font-size: 15px;
-    }
-  }
-  
-  /* For mobile devices */
-  @media (max-width: 768px) {
-    .banner-wrapper {
-      height: 30vh;
-    }
-    
-    .container {
-      padding: 20px 15px;
-    }
-    
-    .section {
-      margin-bottom: 25px;
-    }
-    
-    h2 {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-    
-    p {
-      font-size: 14px;
-    }
-  }
-  
-  /* For very small screens */
-  @media (max-width: 480px) {
-    .banner-wrapper {
-      height: 25vh;
-    }
-    
-    h2 {
-      font-size: 22px;
-    }
-    
-    p {
-      font-size: 13px;
-    }
-  }
-  </style>
+}
+</style>
