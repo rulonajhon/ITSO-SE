@@ -117,7 +117,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: url('../assets/image.png') no-repeat center center;
+    background: url('../assets/background.png');
     background-size: cover;
     position: relative;
   }

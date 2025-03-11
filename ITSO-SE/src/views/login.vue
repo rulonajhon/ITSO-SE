@@ -1,55 +1,60 @@
 <template>
-    <div class="container">
-      <div class="login-box">
-        <!-- University Logo -->
-        <img src="../assets/logo.png" alt="University Logo" class="logo">
-  
-        <!-- Title -->
-        <div class="title-wrapper">
-          <h1 class="university-title">University of The Immaculate Conception</h1>
-          <h2 class="itso-title">ITSO</h2>
-        </div>
-  
-        <!-- Login Form -->
-        <div class="form-container">
-          <form @submit.prevent="handleLogin">
-            <input 
-              type="email" 
-              v-model="email" 
-              placeholder="Email" 
-              required 
-            />
-            <input 
-              type="password" 
-              v-model="password" 
-              placeholder="Password" 
-              required 
-            />
-            <button class="login-btn" type="submit">LOGIN</button>
-          </form>
-        </div>
-  
-        <!-- Links -->
-        <div class="links">
-          <a href="#" class="forgot">Forgot Password</a>
-          <span class="separator">•</span>
-          <a href="#" class="support">Sign Up</a>
-        </div>
+  <div class="container">
+    <div class="login-box">
+      <!-- University Logo -->
+      <img src="../assets/logo.png" alt="University Logo" class="logo" />
+
+      <!-- Title -->
+      <div class="title-wrapper">
+        <h1 class="university-title">University of The Immaculate Conception</h1>
+        <h2 class="itso-title">ITSO</h2>
+      </div>
+
+      <!-- Login Form -->
+      <div class="form-container">
+        <form @submit.prevent="handleLogin">
+          <input 
+            type="email" 
+            v-model="email" 
+            placeholder="Email" 
+            required 
+          />
+          <input 
+            type="password" 
+            v-model="password" 
+            placeholder="Password" 
+            required 
+          />
+          <button class="login-btn" type="submit">LOGIN</button>
+        </form>
+      </div>
+
+      <!-- Links -->
+      <div class="links">
+        <router-link to="/forgot-password" class="forgot">Forgot Password</router-link>
+        <span class="separator">•</span>
+        <router-link to="/signup" class="support">Sign Up</router-link>
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref } from 'vue';
-  
-  const email = ref('');
-  const password = ref('');
-  
-  const handleLogin = () => {
-    // Handle login logic here
-    console.log('Login attempt:', { email: email.value, password: password.value });
-  };
-  </script>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const email = ref('');
+const password = ref('');
+const router = useRouter();
+
+const handleLogin = () => {
+  console.log('Login attempt:', { email: email.value, password: password.value });
+
+  // Redirect to the dashboard or another page after login
+  router.push('/');
+};
+</script>
+
   
   <style>
   /* Reset default margins and padding */
@@ -76,7 +81,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: url('../assets/image.png') no-repeat center center;
+    background: url('../assets/background.png');
     background-size: cover;
     position: relative;
   }

@@ -27,9 +27,13 @@
   
   <script setup>
   import Navbar from "../components/navigationbar.vue";
+  import { useRouter } from 'vue-router';
+  
+  const router = useRouter();
   
   const handleAgree = () => {
     console.log("User agreed to privacy statement");
+    router.push("/ips1");
   };
   </script>
   

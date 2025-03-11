@@ -196,6 +196,45 @@
               </div>
             </div>
             
+            <!-- Section 6: Review -->
+            <div class="form-section">
+              <h3 class="section-title">6. Review</h3>
+              
+              <div class="form-group">
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input 
+                      type="radio" 
+                      name="endorsement" 
+                      value="endorsed" 
+                      checked
+                    />
+                    <span class="radio-custom"></span>
+                    Endorsed
+                  </label>
+                  
+                  <label class="radio-label">
+                    <input 
+                      type="radio" 
+                      name="endorsement" 
+                      value="not-endorsed"
+                    />
+                    <span class="radio-custom"></span>
+                    Not Endorsed
+                  </label>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label>Remarks (if not endorsed)</label>
+                <textarea 
+                  class="form-control textarea"
+                  rows="3"
+                  readonly
+                ></textarea>
+              </div>
+            </div>
+            
             <!-- Form Navigation -->
             <div class="form-navigation">
               <button type="button" class="btn btn-back">Back</button>
@@ -352,6 +391,52 @@
   .textarea {
     resize: vertical;
     min-height: 100px;
+  }
+  
+  /* Radio Buttons */
+  .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .radio-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    padding-left: 25px;
+    margin-right: 15px;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .radio-label input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+  }
+  
+  .radio-custom {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 18px;
+    width: 18px;
+    background-color: #fff;
+    border: 2px solid #ffccd5;
+    border-radius: 50%;
+  }
+  
+  .radio-label input:checked ~ .radio-custom::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #FF7892;
   }
   
   /* Attachment Section */

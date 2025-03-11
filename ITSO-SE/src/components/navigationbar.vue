@@ -9,36 +9,66 @@
       <template #end>
         <div class="icons">
           <i class="pi pi-bell notification-icon"></i>
-          <div class="profile-icon"></div>
+
+          <!-- Profile Dropdown -->
+          <div ref="profileMenu" class="relative">
+            <div class="profile-icon" @click="toggleProfileMenu($event)"></div>
+            <OverlayPanel ref="profileOverlay">
+              <ul class="dropdown-menu">
+                <li @click="navigateTo('/login')" class="dropdown-item">Login</li>
+                <li @click="navigateTo('/signup')" class="dropdown-item">Signup</li>
+              </ul>
+            </OverlayPanel>
+          </div>
         </div>
       </template>
     </Menubar>
+
+    <!-- Services Dropdown -->
+    <OverlayPanel ref="serviceOverlay">
+      <ul class="dropdown-menu">
+        <li @click="navigateTo('/ips1')" class="dropdown-item">IP Protection Application</li>
+        <li @click="navigateTo('/cs1')" class="dropdown-item">Competition and Publication Form</li>
+      </ul>
+    </OverlayPanel>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import Menubar from 'primevue/menubar';
+import OverlayPanel from 'primevue/overlaypanel';
+
+const router = useRouter();
+const profileOverlay = ref(null);
+const serviceOverlay = ref(null);
 
 const items = ref([
-  { label: 'Home' },
+  { label: 'Home', command: () => router.push('/') },
   {
-    label: 'Service',
-    items: [
-      { label: 'File Submission' },
-      { label: 'IP Protection Application' },
-      { label: 'Compliance Checklist' },
-      { label: 'Event Clearance Form' },
-      { label: 'Publication Form' },
-    ],
+    label: 'Services',
+    command: (event) => toggleServiceMenu(event.originalEvent), // Custom dropdown trigger
   },
-  { label: 'Policies' },
-  { label: 'Contact' },
+  { label: 'Policies', command: () => router.push('/policies') },
+  { label: 'Contact', command: () => router.push('/contacts') },
 ]);
+
+const toggleProfileMenu = (event) => {
+  profileOverlay.value.toggle(event);
+};
+
+const toggleServiceMenu = (event) => {
+  serviceOverlay.value.toggle(event);
+};
+
+const navigateTo = (path) => {
+  router.push(path);
+};
 </script>
 
 <style scoped>
-/* Floating Navbar - Always at the Top */
+/* Floating Navbar */
 .menubar-container {
   position: fixed;
   top: 0;
@@ -48,23 +78,23 @@ const items = ref([
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Full-width Navbar with Styling */
+/* Navbar Styling */
 .custom-menubar {
-  background-color: #f47b91 ;
-  border-radius: 0px;
+  background-color: #f47b91;
   padding: 10px 20px;
   width: 100%;
   display: flex;
   align-items: center;
 }
 
-/* Logo Styling */
+/* Logo */
 .logo {
   width: 40px;
   height: 40px;
   margin-right: 20px;
 }
 
+/* Center Menu */
 :deep(.p-menubar-root-list) {
   margin: 0 auto;
   justify-content: center !important;
@@ -87,7 +117,7 @@ const items = ref([
   cursor: pointer;
 }
 
-/* Profile Circle */
+/* Profile Icon */
 .profile-icon {
   width: 30px;
   height: 30px;
@@ -96,4 +126,24 @@ const items = ref([
   cursor: pointer;
 }
 
+/* Dropdown Menu */
+.dropdown-menu {
+  background-color: #fff;
+  list-style: none;
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+}
+
+.dropdown-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  color: #333;
+  font-size: 14px;
+}
+
+.dropdown-item:hover {
+  background-color: #f3f3f3;
+}
 </style>
