@@ -135,7 +135,7 @@
   
   .login-box {
     background: rgba(255, 255, 255, 0.95);
-    padding: 2.5rem;
+    padding: 1.75rem;
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     width: 100%;
@@ -143,40 +143,42 @@
     text-align: center;
     position: relative;
     z-index: 2;
+    max-height: 90vh;
+    overflow-y: auto;
   }
   
   .logo {
-    width: 80px;
-    height: 80px;
-    margin-bottom: 1rem;
+    width: 60px;
+    height: 60px;
+    margin-bottom: 0.5rem;
   }
   
   .title-wrapper {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
   }
   
   .university-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     color: #333;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.25rem 0;
     font-weight: 500;
   }
   
   .itso-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
     color: #ff4d7e;
     margin: 0;
     font-weight: bold;
   }
   
   .form-container {
-    margin: 2rem 0;
+    margin: 1rem 0;
   }
   
   form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
   }
   
   .input-group {
@@ -185,18 +187,18 @@
   
   label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     color: #333;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
   
   input {
-    padding: 0.875rem 1rem;
+    padding: 0.75rem;
     width: 100%;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     outline: none;
-    font-size: 1rem;
+    font-size: 0.95rem;
     box-sizing: border-box;
     transition: border-color 0.2s;
   }
@@ -208,15 +210,15 @@
   .button-group {
     display: flex;
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: 0.75rem;
   }
   
   .back-btn, .signup-btn {
-    padding: 0.875rem 2rem;
+    padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 500;
     flex: 1;
     transition: background-color 0.2s;
@@ -244,19 +246,20 @@
   @media (max-width: 480px) {
     .login-box {
       margin: 1rem;
-      padding: 1.5rem;
+      padding: 1.25rem;
+      max-height: 80vh;
     }
   
     .university-title {
-      font-size: 1.25rem;
+      font-size: 1.1rem;
     }
   
     .itso-title {
-      font-size: 1.75rem;
+      font-size: 1.5rem;
     }
   
     input, .back-btn, .signup-btn {
-      padding: 0.75rem;
+      padding: 0.65rem;
     }
   
     .button-group {
