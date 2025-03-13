@@ -344,9 +344,12 @@ select {
 /* Buttons */
 .form-buttons {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 30px;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 30px;
+    position: fixed;
+    left: 0;
+    right: 0;
 }
 
 .btn {

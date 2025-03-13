@@ -35,72 +35,79 @@
   };
   </script>
   
-  <style>
-  /* Reset and Global Styles */
-  body, html {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    height: 100%;
-    font-family: Arial, sans-serif;
-    background-color: white;
-  }
-  
-  /* Page Wrapper */
-  .page-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    width: 100%;
-  }
-  
-  /* Main Content - Centered */
-  .container {
-    max-width: 600px;
-    width: 100%;
-    text-align: center;
-    padding: 40px 20px;
-  }
-  
-  /* Headings */
-  h1, h2 {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 16px;
-    text-decoration: underline;
-  }
-  
-  h1 {
-    color: #f596c6;
-  }
-  
-  h2 {
-    color: #b31b5e;
-  }
-  
-  /* Paragraph */
-  p {
-    font-size: 16px;
-    line-height: 1.6;
-    margin-bottom: 32px;
-  }
-  
-  /* Agree Button */
-  .agree-button {
-    background-color: #d63384;
-    color: white;
-    font-size: 16px;
-    padding: 12px 32px;
-    border: none;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-  }
-  
-  .agree-button:hover {
-    background-color: #b31b5e;
-  }
-  </style>
-  
+  <style scoped>
+/* Reset and Global Styles */
+body, html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  height: 100%;
+  background-color: white;
+}
+/* Page Wrapper */
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 40px 20px;
+}
+
+/* Container */
+.container {
+  max-width: 800px;
+  width: 100%;
+  text-align: center; /* Ensures all content is centered */
+  padding: 20px;
+}
+
+/* Headings */
+h1, h2 {
+  font-size: 20px;
+  font-weight: bold;
+  text-decoration: underline;
+  text-align: center; /* Center-align headers */
+}
+
+h1 {
+  color: #f596c6;
+}
+
+h2 {
+  color: #b31b5e;
+}
+
+/* Paragraph */
+p {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  text-align: center; /* Center text */
+}
+
+/* Disclaimer Text */
+.privacy-section p {
+  font-weight: normal;
+}
+
+/* Agree Button */
+.agree-button {
+  background-color: #d63384;
+  color: white;
+  font-size: 16px;
+  padding: 12px 32px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: block;
+  margin: 0 auto; /* Centers the button */
+}
+
+.agree-button:hover {
+  background-color: #b31b5e;
+}
+
+</style>

@@ -1,19 +1,15 @@
 <template>
     <div class="page-container">
       <!-- Progress Bar -->
-      <div class="progress-section">
-        <h2 class="progress-title">Submission Progress</h2>
-        <div class="progress-container">
-          <div class="progress-bar">
-            <div v-for="step in steps" :key="step.id" 
-                 class="progress-step" 
-                 :class="{ active: step.id <= currentStep }">
-              <div class="step-circle">{{ step.id }}</div>
-              <div class="step-label">{{ step.label }}</div>
+         <!-- Progress Bar -->
+         <div class="progress-container">
+            <div class="progress-bar">
+              <div v-for="step in steps" :key="step.id" class="progress-step" :class="{ active: step.id <= currentStep }">
+                <div class="step-circle">{{ step.id }}</div>
+                <div class="step-label">{{ step.label }}</div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
   
       <div class="content-container">
         <!-- Left Column - PDF Viewer -->
@@ -89,8 +85,8 @@
   
       <!-- Navigation Buttons -->
       <div class="navigation-buttons">
-        <button class="nav-btn back-btn">Back</button>
-        <button class="nav-btn next-btn">Next</button>
+        <button class="nav-btn back-btn" @click="goBack">Back</button>
+        <button class="nav-btn next-btn" @click="goNext">Next</button>
       </div>
     </div>
   </template>
@@ -99,6 +95,9 @@
   import { ref, onMounted, toRaw } from "vue";
   import * as pdfjsLib from "pdfjs-dist";
   import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+  import { useRouter } from 'vue-router';
+
+  const router = useRouter();
   
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
   
@@ -109,6 +108,14 @@
   const currentPage = ref(1);
   const totalPages = ref(0);
   const scale = ref(1.5);
+
+  const goBack = () => {
+    router.push('/ips2'); // Redirect to ips1.vue
+  };
+
+  const goNext = () => {
+    router.push('/ips4'); // Redirect to ips3.vue
+  };
   
   // PDF rendering functions
   const renderPage = async (pageNumber) => {
@@ -185,21 +192,8 @@
   
   <style scoped>
   /* Progress Bar Styles */
-  .progress-section {
-    margin-bottom: 2rem;
-    text-align: center;
-  }
-  
-  .progress-title {
-    color: #ff6b8a;
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  /* Progress Bar Fixes */
   .progress-container {
-    margin-bottom: 30px;
-    position: relative;
+    margin-bottom: 100px;
   }
   
   .progress-bar {
@@ -207,54 +201,25 @@
     justify-content: space-between;
     position: relative;
     margin-bottom: 30px;
-    padding-top: 15px;
-  }
-  
-  .progress-bar::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 10px;
-    background-color: #ddd;
-    border-radius: 4px;
-    z-index: 1;
-  }
-  
-  .progress-bar::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 30%;
-    height: 10px;
-    background-color: #ff6b8a;
-    border-radius: 4px;
-    z-index: 1;
   }
   
   .progress-step {
     display: flex;
     flex-direction: column;
     align-items: center;
-    position: relative;
-    z-index: 2;
     flex: 1;
   }
   
   .step-circle {
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background-color: #ddd;
     color: #666;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 500;
-    font-size: 12px;
-    margin-bottom: 8px;
+    font-weight: bold;
   }
   
   .progress-step.active .step-circle {
@@ -263,17 +228,14 @@
   }
   
   .step-label {
-    color: #999;
-    font-size: 11px;
+    font-size: 12px;
     text-align: center;
-    font-weight: 400;
-    max-width: 80px;
-    line-height: 1.2;
+    color: #999;
   }
   
   .progress-step.active .step-label {
     color: #ff6b8a;
-    font-weight: 700;
+    font-weight: bold;
   }
   
   .page-container {

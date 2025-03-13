@@ -1,10 +1,14 @@
+"use client"
+
+import { useRouter } from "next/navigation"
+
 <template>
     <div class="page-wrapper">
   
       <div class="content-container">
         <div class="form-container">
           <h1 class="form-title">Submission Progress</h1>
-  
+  \
           <!-- Progress Bar -->
           <div class="progress-container">
             <div class="progress-bar">
@@ -18,18 +22,31 @@
           <!-- Upload Sections -->
           <div class="upload-section">
             <div class="upload-box">
-              <p class="upload-title">Upload Documents</p>
-              <p class="upload-info">Only PDF files are accepted</p>
-              <p class="upload-info">Combine all drawing page(s) into one (1) PDF file</p>
+              <div class="upload-content">
+                <p v-if="mainFile" class="upload-title">{{ mainFile.name }}</p>
+                <template v-else>22
+                  <p class="upload-title">Upload Documents</p>
+                  <p class="upload-info">Only PDF files are accepted</p>
+                  <p class="upload-info">Combine all drawing page(s) into one (1) PDF file</p>
+                </template>
+              </div>
+              <div class="upload-actions">
+                <button v-if="mainFile" class="check-btn" @click="checkDocument">Check Document</button>
+                <button class="upload-btn" @click="triggerFileInput('main')">Upload</button>
+              </div>
               <input type="file" accept=".pdf" @change="handleFileUpload($event, 'main')" hidden ref="mainFileInput" />
-              <button class="upload-btn" @click="triggerFileInput('main')">Upload</button>
             </div>
-  
+          
             <div class="upload-box">
-              <p class="upload-title">Upload Additional Documents (if necessary)</p>
-              <p class="upload-info">Only PDF files are accepted</p>
-              <input type="file" accept=".pdf" @change="handleFileUpload($event, 'additional')" hidden ref="additionalFileInput" />
+              <div class="upload-content">
+                <p v-if="additionalFile" class="upload-title">{{ additionalFile.name }}</p>
+                <template v-else>
+                  <p class="upload-title">Upload Additional Documents (if necessary)</p>
+                  <p class="upload-info">Only PDF files are accepted</p>
+                </template>
+              </div>
               <button class="upload-btn" @click="triggerFileInput('additional')">Upload</button>
+              <input type="file" accept=".pdf" @change="handleFileUpload($event, 'additional')" hidden ref="additionalFileInput" />
             </div>
           </div>
   
@@ -85,13 +102,12 @@
   const goNext = () => {
     router.push('/ips3'); // Redirect to ips3.vue
   };
-  
-  const prevStep = () => {
-    currentStep.value = 1;
-  };
-  
-  const nextStep = () => {
-    currentStep.value = 3;
+
+  const checkDocument = () => {
+    if (mainFile.value) {
+      alert(`Checking document: ${mainFile.value.name}`);
+      // Add your document checking logic here
+    }
   };
   </script>
   
@@ -101,6 +117,7 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+    --current-step: 2;
   }
   
   .content-container {
@@ -132,6 +149,29 @@
     justify-content: space-between;
     position: relative;
     margin-bottom: 30px;
+  }
+
+  .progress-bar::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #ddd;
+    z-index: -1;
+  }
+
+  .progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 0;
+    width: calc((100% / 3) * (var(--current-step) - 1));
+    height: 2px;
+    background-color: #ff6b8a;
+    z-index: -1;
+    transition: width 0.3s ease;
   }
   
   .progress-step {
@@ -179,9 +219,23 @@
   
   .upload-box {
     padding: 15px;
-    border: 2px solid #ff6b8a;
+    border: 1px solid #ddd;
     border-radius: 8px;
     background-color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .upload-actions {
+    display: flex;
+    gap: 10px;
   }
   
   .upload-title {
@@ -207,9 +261,12 @@
   /* Buttons */
   .form-buttons {
     display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 30px;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 30px;
+    position: fixed;
+    left: 0;
+    right: 0;
   }
   
   .btn {
@@ -237,5 +294,14 @@
 .btn:hover {
   opacity: 0.9;
 }
+
+.check-btn {
+  background-color: #FF8BA7;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
   </style>
-  
+

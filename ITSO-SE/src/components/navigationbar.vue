@@ -27,7 +27,7 @@
     <!-- Services Dropdown -->
     <OverlayPanel ref="serviceOverlay">
       <ul class="dropdown-menu">
-        <li @click="navigateTo('/ips1')" class="dropdown-item">IP Protection Application</li>
+        <li @click="navigateTo('/ipsdisclaimer')" class="dropdown-item">IP Protection Application</li>
         <li @click="navigateTo('/cs1')" class="dropdown-item">Competition and Publication Form</li>
       </ul>
     </OverlayPanel>
