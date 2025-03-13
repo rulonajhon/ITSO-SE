@@ -1,7 +1,5 @@
 <template>
     <div class="page-wrapper">
-      <!-- Use the imported Navbar component -->
-      <Navbar />
   
       <!-- Main Content -->
       <div class="content-container">

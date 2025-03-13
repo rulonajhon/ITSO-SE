@@ -1,7 +1,6 @@
 <template>
   <div class="page-wrapper">
     <!-- Use the imported Navbar component -->
-    <Navbar />
 
     <!-- Main Content -->
     <div class="content-container">
@@ -86,7 +85,6 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router'; // Import Vue Router
-import Navbar from "../components/navigationbar.vue";
 
 const router = useRouter(); // Initialize router
 

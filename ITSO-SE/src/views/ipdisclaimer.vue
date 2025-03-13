@@ -1,6 +1,5 @@
 <template>
     <div class="page-wrapper">
-      <Navbar />
   
       <!-- Content -->
       <div class="container">
@@ -26,7 +25,6 @@
   </template>
   
   <script setup>
-  import Navbar from "../components/navigationbar.vue";
   import { useRouter } from 'vue-router';
   
   const router = useRouter();

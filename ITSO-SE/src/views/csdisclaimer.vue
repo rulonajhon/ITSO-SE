@@ -1,6 +1,5 @@
 <template>
     <div class="page-wrapper">
-      <Navbar />
   
       <!-- Content -->
       <div class="container">

@@ -1,6 +1,5 @@
 <template>
     <div class="page-wrapper">
-      <Navbar />
       
       <!-- Banner Image - Keeping original style -->
       <div class="banner-wrapper">

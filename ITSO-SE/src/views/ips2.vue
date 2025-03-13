@@ -1,6 +1,5 @@
 <template>
     <div class="page-wrapper">
-      <Navbar />
   
       <div class="content-container">
         <div class="form-container">
@@ -46,8 +45,10 @@
   
   <script setup>
   import { ref } from 'vue';
-  import Navbar from "../components/navigationbar.vue";
-  
+  import { useRouter } from 'vue-router';
+
+  const router = useRouter();
+
   const steps = ref([
     { id: 1, label: "Basic Information" },
     { id: 2, label: "Document" },
@@ -75,6 +76,14 @@
     } else {
       alert("Only PDF files are accepted.");
     }
+  };
+
+  const goBack = () => {
+    router.push('/ips1'); // Redirect to ips1.vue
+  };
+
+  const goNext = () => {
+    router.push('/ips3'); // Redirect to ips3.vue
   };
   
   const prevStep = () => {
