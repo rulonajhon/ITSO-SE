@@ -71,13 +71,15 @@
                 </div>
               </div>
             </div>
-            </div>
-          </form>
-          <div class="form-buttons">
-            <button type="button" class="btn btn-back" @click="goBack">Back</button>
-            <button type="button" class="btn btn-next" @click="goNext">Next</button>
-            </div>
+          </div>
+        </form>
       </div>
+    </div>
+    
+    <!-- Fixed buttons at the bottom -->
+    <div class="fixed-buttons">
+      <button type="button" class="btn btn-back" @click="goBack">Back</button>
+      <button type="button" class="btn btn-next" @click="goNext">Next</button>
     </div>
   </div>
 </template>
@@ -127,6 +129,7 @@ body, html {
   flex-direction: column;
   min-height: 100vh;
   width: 100%;
+  padding-bottom: 80px; /* Add padding to prevent content from being hidden behind fixed buttons */
 }
 
 /* Update the content-container class to add margin-top */
@@ -341,15 +344,19 @@ select {
   opacity: 1;
 }
 
-/* Buttons */
-.form-buttons {
+/* Fixed Buttons */
+.fixed-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-top: 30px;
-    position: fixed;
-    left: 0;
-    right: 0;
+  justify-content: center;
+  gap: 20px;
+  padding: 15px;
+  background-color: white;
+  border-top: 1px solid #eee;
+  z-index: 100;
 }
 
 .btn {

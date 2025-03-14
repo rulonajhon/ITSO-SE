@@ -3,12 +3,11 @@
 import { useRouter } from "next/navigation"
 
 <template>
-    <div class="page-wrapper">
-  
+    <div class="page-wrapper">">
       <div class="content-container">
         <div class="form-container">
           <h1 class="form-title">Submission Progress</h1>
-  \
+  
           <!-- Progress Bar -->
           <div class="progress-container">
             <div class="progress-bar">
@@ -24,13 +23,12 @@ import { useRouter } from "next/navigation"
             <div class="upload-box">
               <div class="upload-content">
                 <p v-if="mainFile" class="upload-title">{{ mainFile.name }}</p>
-                <template v-else>22
+                <template v-else>
                   <p class="upload-title">Upload Documents</p>
                   <p class="upload-info">Only PDF files are accepted</p>
                   <p class="upload-info">Combine all drawing page(s) into one (1) PDF file</p>
                 </template>
               </div>
-              <div class="upload-actions">
                 <button v-if="mainFile" class="check-btn" @click="checkDocument">Check Document</button>
                 <button class="upload-btn" @click="triggerFileInput('main')">Upload</button>
               </div>
@@ -48,16 +46,13 @@ import { useRouter } from "next/navigation"
               <button class="upload-btn" @click="triggerFileInput('additional')">Upload</button>
               <input type="file" accept=".pdf" @change="handleFileUpload($event, 'additional')" hidden ref="additionalFileInput" />
             </div>
-          </div>
-  
-          <!-- Navigation Buttons -->
-          <div class="form-buttons">
+            <div class="form-buttons">
             <button type="button" class="btn btn-back" @click="goBack">Back</button>
             <button type="button" class="btn btn-next" @click="goNext">Next</button>
           </div>
+          </div>
         </div>
       </div>
-    </div>
   </template>
   
   <script setup>
@@ -260,28 +255,25 @@ import { useRouter } from "next/navigation"
   
   /* Buttons */
   .form-buttons {
-    display: flex;
+  display: flex;
     justify-content: center;
     gap: 20px;
     margin-top: 30px;
     position: fixed;
     left: 0;
     right: 0;
-  }
-  
-  .btn {
-    padding: 10px 30px;
+}
+
+.btn {
+  padding: 10px 30px;
   border: none;
   border-radius: 20px;
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s;
-  }
-  
-  .btn:disabled {
-    background-color: #ddd;
-  }
-  .btn-back {
+}
+
+.btn-back {
   background-color: #ff6b8a;
   color: white;
 }
@@ -293,15 +285,6 @@ import { useRouter } from "next/navigation"
 
 .btn:hover {
   opacity: 0.9;
-}
-
-.check-btn {
-  background-color: #FF8BA7;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
 }
   </style>
 
