@@ -1,10 +1,9 @@
 <template>
   <div class="page-wrapper">
-    <!-- Main Content -->
     <div class="content-container">
       <div class="form-container">
         <h1 class="form-title">Submission Progress</h1>
-    
+
         <!-- Progress Bar -->
         <div class="progress-container">
           <div class="progress-bar">
@@ -22,13 +21,13 @@
             </div>
           </div>
         </div>
-    
+
         <!-- Form Content -->
         <form @submit.prevent="submitForm">
           <!-- Section 5: Attachments -->
           <div class="form-section">
             <h2 class="section-title">5. Attachments</h2>
-            
+
             <div class="document-section">
               <h3 class="document-title">Event/Publication Guidelines</h3>
               <div class="upload-box">
@@ -37,19 +36,21 @@
                   <div class="file-type">Only PDF files are accepted</div>
                 </div>
                 <div class="upload-actions">
-                  <button type="button" class="btn btn-check">Check Document</button>
-                  <button type="button" class="btn btn-upload" @click="triggerFileUpload('guidelinesFile')">Upload</button>
+                  <button type="button" class="btn btn-upload" @click="triggerFileUpload('guidelinesFile')">
+                    Upload
+                  </button>
+                  <span v-if="selectedFiles.guidelines" class="checkmark">✔️</span>
                   <input 
                     type="file" 
                     ref="guidelinesFile" 
                     class="hidden-file-input" 
                     accept=".pdf" 
-                    @change="handleFileUpload('guidelines')"
+                    @change="handleFileSelection('guidelines')"
                   />
                 </div>
               </div>
             </div>
-            
+
             <div class="document-section">
               <h3 class="document-title">Documents</h3>
               <div class="upload-box">
@@ -58,19 +59,21 @@
                   <div class="file-type">Only PDF files are accepted</div>
                 </div>
                 <div class="upload-actions">
-                  <button type="button" class="btn btn-check">Check Document</button>
-                  <button type="button" class="btn btn-upload" @click="triggerFileUpload('documentsFile')">Upload</button>
+                  <button type="button" class="btn btn-upload" @click="triggerFileUpload('documentsFile')">
+                    Upload
+                  </button>
+                  <span v-if="selectedFiles.documents" class="checkmark">✔️</span>
                   <input 
                     type="file" 
                     ref="documentsFile" 
                     class="hidden-file-input" 
                     accept=".pdf" 
-                    @change="handleFileUpload('documents')"
+                    @change="handleFileSelection('documents')"
                   />
                 </div>
               </div>
             </div>
-            
+
             <div class="document-section">
               <h3 class="document-title">Request Document</h3>
               <div class="upload-box">
@@ -79,19 +82,21 @@
                   <div class="file-type">Only PDF files are accepted</div>
                 </div>
                 <div class="upload-actions">
-                  <button type="button" class="btn btn-view">View Sample Format</button>
-                  <button type="button" class="btn btn-upload" @click="triggerFileUpload('requestFile')">Upload</button>
+                  <button type="button" class="btn btn-upload" @click="triggerFileUpload('requestFile')">
+                    Upload
+                  </button>
+                  <span v-if="selectedFiles.request" class="checkmark">✔️</span>
                   <input 
                     type="file" 
                     ref="requestFile" 
                     class="hidden-file-input" 
                     accept=".pdf" 
-                    @change="handleFileUpload('request')"
+                    @change="handleFileSelection('request')"
                   />
                 </div>
               </div>
             </div>
-            
+
             <div class="document-section">
               <h3 class="document-title">Additional Document (If necessary)</h3>
               <div class="upload-box">
@@ -100,22 +105,24 @@
                   <div class="file-type">Only PDF files are accepted</div>
                 </div>
                 <div class="upload-actions">
-                  <button type="button" class="btn btn-view">View Document</button>
-                  <button type="button" class="btn btn-upload" @click="triggerFileUpload('additionalFile')">Upload</button>
+                  <button type="button" class="btn btn-upload" @click="triggerFileUpload('additionalFile')">
+                    Upload
+                  </button>
+                  <span v-if="selectedFiles.additional" class="checkmark">✔️</span>
                   <input 
                     type="file" 
                     ref="additionalFile" 
                     class="hidden-file-input" 
                     accept=".pdf" 
-                    @change="handleFileUpload('additional')"
+                    @change="handleFileSelection('additional')"
                   />
                 </div>
               </div>
             </div>
-            
+
             <div class="below-buttons">
               <button type="button" class="btn btn-back" @click="goBack">Back</button>
-              <button type="button" class="btn btn-next" @click="goNext">Next</button>
+              <button type="button" class="btn btn-next" @click="uploadFilesAndGoNext">Next</button>
             </div>
           </div>
         </form>
@@ -127,17 +134,29 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { auth, storage } from '@/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const router = useRouter();
 
-// File upload references
+// Track authenticated user
+const user = ref(null);
+
+onAuthStateChanged(auth, (currentUser) => {
+  if (currentUser) {
+    user.value = currentUser;
+  }
+});
+
+// File input refs
 const guidelinesFile = ref(null);
 const documentsFile = ref(null);
 const requestFile = ref(null);
 const additionalFile = ref(null);
 
-// Form data
-const formData = ref({
+// Store selected files
+const selectedFiles = ref({
   guidelines: null,
   documents: null,
   request: null,
@@ -146,44 +165,79 @@ const formData = ref({
 
 // Trigger file input click
 const triggerFileUpload = (refName) => {
-  if (refName && refs[refName]) {
-    refs[refName].value.click();
+  const fileInputRef = {
+    'guidelinesFile': guidelinesFile,
+    'documentsFile': documentsFile,
+    'requestFile': requestFile,
+    'additionalFile': additionalFile
+  }[refName];
+
+  if (fileInputRef && fileInputRef.value) {
+    fileInputRef.value.click();
   }
 };
 
-// Handle file upload
-const handleFileUpload = (type) => {
+// Store files locally and show checkmark
+const handleFileSelection = (type) => {
+  if (!user.value) {
+    alert("You must be logged in to upload files.");
+    return;
+  }
+
   const fileInputRef = {
     'guidelines': guidelinesFile,
     'documents': documentsFile,
     'request': requestFile,
     'additional': additionalFile
   }[type];
-  
+
   if (fileInputRef.value && fileInputRef.value.files.length > 0) {
     const file = fileInputRef.value.files[0];
-    if (file.type === 'application/pdf') {
-      formData.value[type] = file;
-      console.log(`${type} file uploaded:`, file.name);
-    } else {
-      alert('Only PDF files are accepted');
+
+    if (file.type !== 'application/pdf') {
+      alert('Only PDF files are accepted.');
       fileInputRef.value.value = ''; // Clear the input
+      return;
     }
+
+    selectedFiles.value[type] = file; // Show checkmark
+  }
+};
+
+// Upload files when "Next" is clicked
+const uploadFilesAndGoNext = async () => {
+  if (!user.value) {
+    alert("You must be logged in to proceed.");
+    return;
+  }
+
+  try {
+    for (const type in selectedFiles.value) {
+      if (selectedFiles.value[type]) {
+        const file = selectedFiles.value[type];
+        const filePath = `submission_competition/${user.value.uid}/${type}.pdf`;
+        const fileRef = storageRef(storage, filePath);
+        
+        await uploadBytes(fileRef, file);
+        const downloadURL = await getDownloadURL(fileRef);
+        console.log(`Uploaded ${type}: ${downloadURL}`);
+      }
+    }
+
+    router.push('/cs3');
+  } catch (error) {
+    console.error("File upload failed:", error);
+    alert("File upload failed. Please try again.");
   }
 };
 
 // Navigation functions
-const goNext = () => {
-  // Save form data and navigate to next step
-  console.log('Form data:', formData.value);
-  router.push('/cs3'); // Assuming cs3 is the review page
-};
+const goBack = () => router.push('/cs1');
 
-const goBack = () => {
-  // Navigate back to previous step
-  router.push('/cs1'); // Assuming cs1 is the application information page
-};
 </script>
+
+
+
 
 <style>
 /* Reset and Global Styles */

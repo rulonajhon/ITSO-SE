@@ -2,7 +2,7 @@
   <div class="signup-container">
     <div class="signup-box">
       <!-- University Logo -->
-      <img src="../assets/logo.png" alt="University Logo" class="logo">
+      <img src="../assets/logo.png" alt="University Logo" class="logo" />
 
       <!-- Title -->
       <div class="title-wrapper">
@@ -59,9 +59,13 @@
             />
           </div>
 
+          <div class="error-message" v-if="errorMessage">{{ errorMessage }}</div>
+
           <div class="button-group">
             <button type="button" class="back-btn" @click="goBack">Back</button>
-            <button type="submit" class="signup-btn">Sign Up</button>
+            <button type="submit" class="signup-btn" :disabled="loading">
+              {{ loading ? "Signing Up..." : "Sign Up" }}
+            </button>
           </div>
         </form>
       </div>
@@ -72,6 +76,9 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { auth, db } from '../firebase'; // Import Firebase services
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 const router = useRouter();
 
@@ -82,9 +89,44 @@ const formData = ref({
   password: ''
 });
 
-const handleSignup = () => {
-  // Handle signup logic here
-  console.log('Signup attempt:', formData.value);
+const errorMessage = ref('');
+const loading = ref(false);
+
+const handleSignup = async () => {
+  errorMessage.value = '';
+  
+  if (!formData.value.email.endsWith('@uic.edu.ph')) {
+    errorMessage.value = 'Please use your UIC email address.';
+    return;
+  }
+
+  try {
+    loading.value = true;
+    
+    // Create user with Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(
+      auth, 
+      formData.value.email, 
+      formData.value.password
+    );
+
+    const user = userCredential.user;
+
+    // Store user details in Firestore
+    await setDoc(doc(db, 'users', user.uid), {
+      fullName: formData.value.fullName,
+      username: formData.value.username,
+      email: formData.value.email,
+      createdAt: new Date()
+    });
+
+    // Redirect to login after successful signup
+    router.push('/login');
+  } catch (error) {
+    errorMessage.value = error.message;
+  } finally {
+    loading.value = false;
+  }
 };
 
 const goBack = () => {

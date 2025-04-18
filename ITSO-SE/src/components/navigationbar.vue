@@ -15,8 +15,9 @@
             <div class="profile-icon" @click="toggleProfileMenu($event)"></div>
             <OverlayPanel ref="profileOverlay">
               <ul class="dropdown-menu">
-                <li @click="navigateTo('/login')" class="dropdown-item">Login</li>
-                <li @click="navigateTo('/signup')" class="dropdown-item">Signup</li>
+                <li v-if="!user" @click="navigateTo('/login')" class="dropdown-item">Login</li>
+                <li v-if="!user" @click="navigateTo('/signup')" class="dropdown-item">Signup</li>
+                <li v-if="user" @click="logout" class="dropdown-item">Logout</li>
               </ul>
             </OverlayPanel>
           </div>
@@ -35,20 +36,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { auth } from '../firebase'; // Ensure Firebase is configured
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import Menubar from 'primevue/menubar';
 import OverlayPanel from 'primevue/overlaypanel';
 
 const router = useRouter();
 const profileOverlay = ref(null);
 const serviceOverlay = ref(null);
+const user = ref(null);
 
 const items = ref([
   { label: 'Home', command: () => router.push('/') },
   {
     label: 'Services',
-    command: (event) => toggleServiceMenu(event.originalEvent), // Custom dropdown trigger
+    command: (event) => toggleServiceMenu(event.originalEvent),
   },
   { label: 'Policies', command: () => router.push('/policies') },
   { label: 'Contact', command: () => router.push('/contacts') },
@@ -64,6 +68,20 @@ const toggleServiceMenu = (event) => {
 
 const navigateTo = (path) => {
   router.push(path);
+};
+
+// Track authentication state
+onMounted(() => {
+  onAuthStateChanged(auth, (currentUser) => {
+    user.value = currentUser;
+  });
+});
+
+// Logout function
+const logout = async () => {
+  await signOut(auth);
+  user.value = null;
+  router.push('/'); // Redirect to landing page
 };
 </script>
 

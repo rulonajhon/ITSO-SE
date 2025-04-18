@@ -4,15 +4,15 @@
       <h1>Login</h1>
       <form @submit.prevent="login">
         <div class="input-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" v-model="username" required>
+          <label for="email">UIC Email</label>
+          <input type="email" id="email" v-model="email" required placeholder="Enter your UIC email">
         </div>
         <div class="input-group">
           <label for="password">Password</label>
-          <input type="password" id="password" v-model="password" required>
+          <input type="password" id="password" v-model="password" required placeholder="Enter your password">
         </div>
-        <button type="submit">Login</button>
-        <p v-if="error" class="error-message">{{ error }}</p>
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+        <button type="submit" :disabled="loading">{{ loading ? "Logging in..." : "Login" }}</button>
       </form>
     </div>
   </div>
@@ -20,18 +20,34 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { auth } from '../firebase'; // Import Firebase Authentication
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
-const username = ref('');
+const router = useRouter();
+const email = ref('');
 const password = ref('');
-const error = ref('');
+const errorMessage = ref('');
+const loading = ref(false);
 
 const login = async () => {
-  // Simulate login (replace with actual API call)
-  if (username.value === 'user' && password.value === 'password') {
-    error.value = '';
-    alert('Login successful!'); // Replace with actual navigation
-  } else {
-    error.value = 'Invalid username or password.';
+  errorMessage.value = '';
+  loading.value = true;
+
+  try {
+    // Firebase Authentication
+    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
+    const user = userCredential.user;
+
+    console.log('User logged in:', user);
+
+    // Redirect to dashboard
+    router.push('/home'); 
+  } catch (error) {
+    errorMessage.value = "Invalid email or password.";
+    console.error("Login error:", error.message);
+  } finally {
+    loading.value = false;
   }
 };
 </script>

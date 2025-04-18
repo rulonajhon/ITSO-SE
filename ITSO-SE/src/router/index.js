@@ -12,11 +12,14 @@ import Policies from '../views/policies.vue';
 import Contacts from '../views/contacts.vue';
 import Login from '../views/login.vue';
 import Signup from '../views/signup.vue';
+import homepage from '../views/homeview.vue';
+import Admincs3 from '../views/admincs3.vue'
 
 
 const routes = [
     { path: '/', component: LandingPage },
     { path: '/ipsdisclaimer', component: Ipdisclaimer },
+    
     { path: '/ips1', component: Ips1 },
     { path: '/ips2', component: Ips2 },
     { path: '/ips3', component: Ips3 },
@@ -24,10 +27,12 @@ const routes = [
     { path: '/cs1', component: Cs1 },
     { path: '/cs2', component: Cs2 },
     { path: '/cs3', component: Cs3 },
+    { path: '/admincs3', component: Admincs3 },
     { path: '/policies', component: Policies },
     { path: '/contacts', component: Contacts },
     { path: '/login', component: Login },
     { path: '/signup', component: Signup },
+    { path: '/home', component: homepage },
 ];
 
 const router = createRouter({

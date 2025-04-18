@@ -1,10 +1,9 @@
 <template>
   <div class="page-wrapper">
-    <!-- Main Content -->
     <div class="content-container">
       <div class="form-container">
         <h1 class="form-title">Review Submission</h1>
-    
+
         <!-- Progress Bar -->
         <div class="progress-container">
           <div class="progress-bar">
@@ -22,8 +21,8 @@
             </div>
           </div>
         </div>
-    
-        <!-- Review Content -->
+
+        <!-- Review Section -->
         <div class="review-container">
           <!-- Section 1: Applicant Information -->
           <div class="review-section">
@@ -31,132 +30,102 @@
             <div class="review-grid">
               <div class="review-item">
                 <div class="review-label">Full Name</div>
-                <div class="review-value">{{ formStore.applicantInfo.fullName }}</div>
+                <div class="review-value">{{ applicantInfo.fullName }}</div>
               </div>
               <div class="review-item">
                 <div class="review-label">Position/Title</div>
-                <div class="review-value">{{ formStore.applicantInfo.position }}</div>
+                <div class="review-value">{{ applicantInfo.position }}</div>
               </div>
               <div class="review-item">
                 <div class="review-label">Email</div>
-                <div class="review-value">{{ formStore.applicantInfo.email }}</div>
+                <div class="review-value">{{ applicantInfo.email }}</div>
               </div>
               <div class="review-item">
                 <div class="review-label">Contact Number</div>
-                <div class="review-value">{{ formStore.applicantInfo.contactNumber }}</div>
+                <div class="review-value">{{ applicantInfo.contactNumber }}</div>
               </div>
               <div class="review-item">
                 <div class="review-label">Department</div>
-                <div class="review-value">{{ formStore.applicantInfo.department }}</div>
+                <div class="review-value">{{ applicantInfo.department }}</div>
               </div>
             </div>
           </div>
-          
+
           <!-- Section 2: Event/Public Details -->
           <div class="review-section">
             <h2 class="section-title">2. Event/Public Details</h2>
             <div class="review-grid">
               <div class="review-item">
                 <div class="review-label">Type of Activity</div>
-                <div class="review-value">{{ formStore.getActivityTypeLabel(formStore.eventDetails.activityType) }}</div>
+                <div class="review-value">{{ getActivityLabel(eventDetails.activityType) }}</div>
               </div>
               <div class="review-item">
                 <div class="review-label">Name of Event/Journal</div>
-                <div class="review-value">{{ formStore.eventDetails.eventName }}</div>
+                <div class="review-value">{{ eventDetails.eventName }}</div>
               </div>
               <div class="review-item">
                 <div class="review-label">Date(s) of Event/Submission Deadline</div>
-                <div class="review-value">{{ formStore.eventDetails.eventDate }}</div>
+                <div class="review-value">{{ eventDetails.eventDate }}</div>
               </div>
               <div class="review-item">
-                <div class="review-label">Location (Venue/Online Platform)</div>
-                <div class="review-value">{{ formStore.eventDetails.eventLocation }}</div>
+                <div class="review-label">Location (Venue/Online)</div>
+                <div class="review-value">{{ eventDetails.eventLocation }}</div>
               </div>
               <div class="review-item">
                 <div class="review-label">Organizer/Publisher</div>
-                <div class="review-value">{{ formStore.eventDetails.organizer }}</div>
+                <div class="review-value">{{ eventDetails.organizer }}</div>
               </div>
             </div>
           </div>
-          
+
           <!-- Section 3: Project/Research/Publication Information -->
           <div class="review-section">
             <h2 class="section-title">3. Project/Research/Publication Information</h2>
             <div class="review-grid">
               <div class="review-item">
-                <div class="review-label">Title of Project/Research/Paper</div>
-                <div class="review-value">{{ formStore.projectInfo.projectTitle }}</div>
+                <div class="review-label">Title</div>
+                <div class="review-value">{{ projectInfo.projectTitle }}</div>
               </div>
               <div class="review-item full-width">
-                <div class="review-label">Brief Description of Project/Research/Paper</div>
-                <div class="review-value description">{{ formStore.projectInfo.projectDescription }}</div>
+                <div class="review-label">Description</div>
+                <div class="review-value">{{ projectInfo.projectDescription }}</div>
               </div>
               <div class="review-item">
                 <div class="review-label">IP Protection</div>
-                <div class="review-value">{{ formStore.projectInfo.ipProtection === 'with' ? 'With IP protection' : 'Without IP protection' }}</div>
+                <div class="review-value">
+                  {{ projectInfo.ipProtection === 'with' ? 'With IP Protection' : 'Without IP Protection' }}
+                </div>
               </div>
             </div>
           </div>
-          
+
           <!-- Section 4: Uploaded Documents -->
           <div class="review-section">
             <h2 class="section-title">4. Uploaded Documents</h2>
             <div class="documents-list">
-              <div class="document-item" :class="{ 'document-missing': !formStore.documents.guidelines }">
+              <div class="document-item" v-for="(file, key) in documents" :key="key">
                 <div class="document-icon">
-                  <i class="document-status-icon" :class="formStore.documents.guidelines ? 'icon-check' : 'icon-missing'"></i>
+                  <span v-if="file" class="checkmark">✔️</span>
+                  <span v-else class="missing">❌</span>
                 </div>
                 <div class="document-details">
-                  <div class="document-name">Event/Publication Guidelines</div>
-                  <div class="document-filename" v-if="formStore.documents.guidelines">{{ formStore.documents.guidelines.name }}</div>
-                  <div class="document-missing-text" v-else>Document not uploaded</div>
-                </div>
-              </div>
-              
-              <div class="document-item" :class="{ 'document-missing': !formStore.documents.documents }">
-                <div class="document-icon">
-                  <i class="document-status-icon" :class="formStore.documents.documents ? 'icon-check' : 'icon-missing'"></i>
-                </div>
-                <div class="document-details">
-                  <div class="document-name">Documents</div>
-                  <div class="document-filename" v-if="formStore.documents.documents">{{ formStore.documents.documents.name }}</div>
-                  <div class="document-missing-text" v-else>Document not uploaded</div>
-                </div>
-              </div>
-              
-              <div class="document-item" :class="{ 'document-missing': !formStore.documents.request }">
-                <div class="document-icon">
-                  <i class="document-status-icon" :class="formStore.documents.request ? 'icon-check' : 'icon-missing'"></i>
-                </div>
-                <div class="document-details">
-                  <div class="document-name">Request Document</div>
-                  <div class="document-filename" v-if="formStore.documents.request">{{ formStore.documents.request.name }}</div>
-                  <div class="document-missing-text" v-else>Document not uploaded</div>
-                </div>
-              </div>
-              
-              <div class="document-item" :class="{ 'document-optional': !formStore.documents.additional }">
-                <div class="document-icon">
-                  <i class="document-status-icon" :class="formStore.documents.additional ? 'icon-check' : 'icon-optional'"></i>
-                </div>
-                <div class="document-details">
-                  <div class="document-name">Additional Document</div>
-                  <div class="document-filename" v-if="formStore.documents.additional">{{ formStore.documents.additional.name }}</div>
-                  <div class="document-optional-text" v-else>Optional document</div>
+                  <div class="document-name">{{ getFileLabel(key) }}</div>
+                  <div v-if="file">{{ file.name }}</div>
+                  <div v-else class="document-missing-text">Document not uploaded</div>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <!-- Confirmation Section -->
           <div class="confirmation-section">
             <label class="checkbox-label">
               <input type="checkbox" v-model="confirmSubmission">
               <span class="checkbox-custom"></span>
-              I confirm that all the information provided is accurate and complete
+              I confirm that all the information provided is accurate and complete.
             </label>
           </div>
-          
+
           <!-- Navigation Buttons -->
           <div class="below-buttons">
             <button type="button" class="btn btn-back" @click="goBack">Back</button>
@@ -176,53 +145,94 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { auth } from '@/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useFormStore } from '../stores/formStore';
 
 const router = useRouter();
 const formStore = useFormStore();
 const confirmSubmission = ref(false);
 const isSubmitting = ref(false);
+const user = ref(null);
 
-// Navigation functions
-const goBack = () => {
-  // Go back to documents page (cs2)
-  router.push('/cs2');
+// Track authenticated user
+onAuthStateChanged(auth, (currentUser) => {
+  user.value = currentUser;
+});
+
+// Retrieve data from formStore
+const applicantInfo = computed(() => formStore.applicantInfo);
+const eventDetails = computed(() => formStore.eventDetails);
+const projectInfo = computed(() => formStore.projectInfo);
+const documents = computed(() => formStore.documents);
+
+// Check if all required documents are uploaded
+const isReadyToSubmit = computed(() => {
+  return (
+    documents.value.guidelines &&
+    documents.value.documents &&
+    documents.value.request
+  );
+});
+
+// Get activity label
+const getActivityLabel = (type) => {
+  const labels = {
+    conference: 'Conference',
+    journal: 'Journal Publication',
+    seminar: 'Seminar',
+  };
+  return labels[type] || 'Other';
 };
 
+// Get document label
+const getFileLabel = (key) => {
+  const labels = {
+    guidelines: 'Event/Publication Guidelines',
+    documents: 'Documents',
+    request: 'Request Document',
+    additional: 'Additional Document',
+  };
+  return labels[key] || 'Unknown Document';
+};
+
+// Go back to previous step
+const goBack = () => router.push('/cs2');
+
+// Submit Form
 const submitForm = async () => {
-  if (!confirmSubmission.value) {
+  if (!user.value) {
+    alert('You must be logged in to submit.');
     return;
   }
-  
+
+  if (!isReadyToSubmit.value) {
+    alert('Please upload all required documents before submitting.');
+    return;
+  }
+
+  if (!confirmSubmission.value) {
+    alert('Please confirm your submission.');
+    return;
+  }
+
   isSubmitting.value = true;
-  
   try {
-    // Submit the form using the store method
-    const result = await formStore.submitForm();
-    
-    if (result.success) {
-      // Show success message
-      alert(result.message);
-      
-      // Reset the form
-      formStore.resetForm();
-      
-      // Redirect to confirmation page or home
-      router.push('/submission-confirmation');
-    } else {
-      // Show error message
-      alert(result.message);
-    }
+    await formStore.submitForm();
+    alert('Submission successful!');
+    formStore.resetForm();
+    router.push('/submission-confirmation');
   } catch (error) {
-    console.error('Error submitting form:', error);
-    alert('An unexpected error occurred. Please try again.');
+    alert('Submission failed, please try again.');
+    console.error(error);
   } finally {
     isSubmitting.value = false;
   }
 };
 </script>
+
 
 <style>
 /* Reset and Global Styles */

@@ -4,35 +4,36 @@
     <div class="content-container">
       <div class="form-container">
         <h1 class="form-title">Submission Progress</h1>
-    
+
         <!-- Progress Bar -->
         <div class="progress-container">
           <div class="progress-bar">
-            <div class="progress-step active">
+            <div :class="['progress-step', currentStep >= 1 ? 'active' : '']">
               <div class="step-circle">1</div>
               <div class="step-label">Basic Information</div>
             </div>
-            <div class="progress-step">
+            <div :class="['progress-step', currentStep >= 2 ? 'active' : '']">
               <div class="step-circle">2</div>
               <div class="step-label">Documents</div>
             </div>
-            <div class="progress-step">
+            <div :class="['progress-step', currentStep >= 3 ? 'active' : '']">
               <div class="step-circle">3</div>
               <div class="step-label">Review</div>
             </div>
-            <div class="progress-step">
+            <div :class="['progress-step', currentStep >= 4 ? 'active' : '']">
               <div class="step-circle">4</div>
               <div class="step-label">Complete</div>
             </div>
           </div>
         </div>
-    
+
         <!-- Form Content -->
         <form @submit.prevent="submitForm">
           <div class="form-section">
             <div class="form-group">
               <label>Title</label>
               <input type="text" v-model="formData.title" required />
+              <span v-if="errors.title" class="error-message">{{ errors.title }}</span>
             </div>
 
             <div class="form-group">
@@ -70,17 +71,20 @@
               <div class="form-group">
                 <label>Full Name</label>
                 <input type="text" v-model="formData.fullName" required />
+                <span v-if="errors.fullName" class="error-message">{{ errors.fullName }}</span>
               </div>
 
               <div class="form-group">
                 <label>Email</label>
                 <input type="email" v-model="formData.email" required />
+                <span v-if="errors.email" class="error-message">{{ errors.email }}</span>
               </div>
 
               <div class="form-row">
                 <div class="form-group half">
                   <label>Contact Number</label>
                   <input type="tel" v-model="formData.contactNumber" required />
+                  <span v-if="errors.contactNumber" class="error-message">{{ errors.contactNumber }}</span>
                 </div>
 
                 <div class="form-group half">
@@ -96,11 +100,13 @@
                     </select>
                     <div class="select-arrow">▼</div>
                   </div>
+                  <span v-if="errors.department" class="error-message">{{ errors.department }}</span>
                 </div>
               </div>
             </div>
 
             <div class="below-buttons">
+              <button type="button" class="btn btn-save" @click="saveDraft">Save Draft</button>
               <button type="button" class="btn btn-back" @click="goBack">Back</button>
               <button type="submit" class="btn btn-next">Next</button>
             </div>
@@ -112,11 +118,25 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { db, auth } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 const router = useRouter();
+const user = ref(null);
+const currentStep = ref(1);
+const errors = ref({});
 
+// Track authenticated user
+onAuthStateChanged(auth, (currentUser) => {
+  if (currentUser) {
+    user.value = currentUser;
+  }
+});
+
+// Form Data with Default Values
 const formData = ref({
   title: '',
   category: 'research',
@@ -126,17 +146,66 @@ const formData = ref({
   department: '',
 });
 
-const submitForm = () => {
-  // Handle form submission
-  console.log('Form submitted:', formData.value);
-  router.push('/cs2');
+// Load saved draft from localStorage
+onMounted(() => {
+  const savedForm = localStorage.getItem('submissionDraft');
+  if (savedForm) {
+    formData.value = JSON.parse(savedForm);
+  }
+});
+
+// Validate Form
+const validateForm = () => {
+  errors.value = {}; // Reset errors
+  if (!formData.value.title) errors.value.title = "Title is required.";
+  if (!formData.value.fullName) errors.value.fullName = "Full name is required.";
+  if (!formData.value.email) errors.value.email = "Email is required.";
+  if (!formData.value.contactNumber) errors.value.contactNumber = "Contact number is required.";
+  if (!formData.value.department) errors.value.department = "Please select a department.";
+
+  return Object.keys(errors.value).length === 0; // If no errors, return true
 };
 
+// Save Draft to Local Storage
+const saveDraft = () => {
+  localStorage.setItem('submissionDraft', JSON.stringify(formData.value));
+  alert("Draft saved successfully!");
+};
+
+// Submit Form
+const submitForm = async () => {
+  if (!validateForm()) {
+    alert("Please fill in all required fields.");
+    return;
+  }
+
+  if (!user.value) {
+    alert("You must be logged in to submit.");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "submission_competition"), {
+      ...formData.value,
+      submittedBy: user.value.uid,
+      submittedEmail: user.value.email,
+      submittedAt: serverTimestamp(), // Keep timestamp for tracking
+    });
+
+    alert("Submission successful!");
+    router.push('/cs2'); // Redirect to next step
+  } catch (error) {
+    console.error("Error submitting form:", error);
+    alert("Failed to submit. Please try again.");
+  }
+};
+
+// Go Back to Previous Page
 const goBack = () => {
-  // Handle back navigation
   router.go(-1);
 };
 </script>
+
 
 <style>
 /* Reset and Global Styles */

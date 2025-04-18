@@ -1,12 +1,9 @@
 <template>
   <div class="page-wrapper">
-    <!-- Use the imported Navbar component -->
-
-    <!-- Main Content -->
     <div class="content-container">
       <div class="form-container">
         <h1 class="form-title">Publication Participation Form</h1>
-    
+
         <!-- Progress Bar -->
         <div class="progress-container">
           <div class="progress-bar">
@@ -28,34 +25,34 @@
             </div>
           </div>
         </div>
-    
+
         <!-- Form Content -->
         <form @submit.prevent="submitForm">
           <!-- Section 1: Applicant Information -->
           <div class="form-section">
             <h2 class="section-title">1. Applicant Information</h2>
-    
+
             <div class="form-group">
               <label>Full Name</label>
               <input type="text" v-model="formData.fullName" required />
             </div>
-    
+
             <div class="form-group">
               <label>Position/Title</label>
               <input type="text" v-model="formData.position" required />
             </div>
-    
+
             <div class="form-group">
               <label>Email</label>
               <input type="email" v-model="formData.email" required />
             </div>
-    
+
             <div class="form-row">
               <div class="form-group half">
                 <label>Contact Number</label>
                 <input type="tel" v-model="formData.contactNumber" required />
               </div>
-    
+
               <div class="form-group half">
                 <label>Department</label>
                 <div class="select-wrapper">
@@ -72,23 +69,25 @@
               </div>
             </div>
           </div>
+
+          <!-- Fixed buttons at the bottom -->
+          <div class="fixed-buttons">
+            <button type="button" class="btn btn-back" @click="goBack">Back</button>
+            <button type="submit" class="btn btn-next">Next</button>
+          </div>
         </form>
       </div>
-    </div>
-    
-    <!-- Fixed buttons at the bottom -->
-    <div class="fixed-buttons">
-      <button type="button" class="btn btn-back" @click="goBack">Back</button>
-      <button type="button" class="btn btn-next" @click="goNext">Next</button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router'; // Import Vue Router
+import { useRouter } from 'vue-router';
+import { db } from '../firebase'; // Ensure Firebase is configured
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
-const router = useRouter(); // Initialize router
+const router = useRouter();
 
 const formData = ref({
   fullName: '',
@@ -106,11 +105,22 @@ const formData = ref({
   ipProtection: 'with',
 });
 
-const goNext = () => {
-  router.push('/ips2'); // Redirect to ips2.vue
+const submitForm = async () => {
+  try {
+    await addDoc(collection(db, 'submissions'), {
+      ...formData.value,
+      createdAt: serverTimestamp(), // Add timestamp
+    });
+    alert('Submission Successful!');
+    router.push('/ips2'); // Redirect to next step
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    alert('Submission failed. Please try again.');
+  }
 };
+
 const goBack = () => {
-  router.push('/disclaimer'); // Redirect to ips2.vue
+  router.push('/disclaimer');
 };
 </script>
 

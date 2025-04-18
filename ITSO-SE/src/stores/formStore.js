@@ -27,7 +27,7 @@ export const useFormStore = defineStore('form', () => {
     ipProtection: 'with',
   });
 
-  // Step 2: Document Information
+  // Step 2: Document Information (now stores URLs)
   const documents = ref({
     guidelines: null,
     documents: null,
@@ -51,8 +51,16 @@ export const useFormStore = defineStore('form', () => {
     projectInfo.value = { ...projectInfo.value, ...data };
   };
 
+  // ✅ Updated function to store file URLs
+  const updateDocumentFiles = (type, fileURL) => {
+    documents.value[type] = fileURL; // Store URL instead of file object
+  };
+
+  // ✅ Modified to store local file selection (optional)
   const updateDocument = (type, file) => {
-    documents.value[type] = file;
+    if (file) {
+      documents.value[type] = file; // Store the selected file (before upload)
+    }
   };
 
   const setCurrentStep = (step) => {
@@ -133,7 +141,6 @@ export const useFormStore = defineStore('form', () => {
   // Submit the form
   const submitForm = async () => {
     try {
-      // Here you would typically make an API call to submit the form data
       console.log('Submitting form with data:', {
         applicantInfo: applicantInfo.value,
         eventDetails: eventDetails.value,
@@ -144,7 +151,6 @@ export const useFormStore = defineStore('form', () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Return success
       return { success: true, message: 'Form submitted successfully!' };
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -165,6 +171,7 @@ export const useFormStore = defineStore('form', () => {
     updateEventDetails,
     updateProjectInfo,
     updateDocument,
+    updateDocumentFiles,  // ✅ Added function to store file URLs
     setCurrentStep,
     resetForm,
     submitForm,

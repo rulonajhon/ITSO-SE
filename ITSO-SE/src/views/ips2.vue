@@ -1,110 +1,172 @@
-"use client"
-
-import { useRouter } from "next/navigation"
-
 <template>
-    <div class="page-wrapper">">
-      <div class="content-container">
-        <div class="form-container">
-          <h1 class="form-title">Submission Progress</h1>
-  
-          <!-- Progress Bar -->
-          <div class="progress-container">
-            <div class="progress-bar">
-              <div v-for="step in steps" :key="step.id" class="progress-step" :class="{ active: step.id <= currentStep }">
-                <div class="step-circle">{{ step.id }}</div>
-                <div class="step-label">{{ step.label }}</div>
-              </div>
+  <div class="page-wrapper">
+    <div class="content-container">
+      <div class="form-container">
+        <h1 class="form-title">Submission Progress</h1>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div v-for="step in steps" :key="step.id" class="progress-step" :class="{ active: step.id <= currentStep }">
+              <div class="step-circle">{{ step.id }}</div>
+              <div class="step-label">{{ step.label }}</div>
             </div>
           </div>
-  
-          <!-- Upload Sections -->
-          <div class="upload-section">
-            <div class="upload-box">
-              <div class="upload-content">
-                <p v-if="mainFile" class="upload-title">{{ mainFile.name }}</p>
-                <template v-else>
-                  <p class="upload-title">Upload Documents</p>
-                  <p class="upload-info">Only PDF files are accepted</p>
-                  <p class="upload-info">Combine all drawing page(s) into one (1) PDF file</p>
-                </template>
-              </div>
-                <button v-if="mainFile" class="check-btn" @click="checkDocument">Check Document</button>
-                <button class="upload-btn" @click="triggerFileInput('main')">Upload</button>
-              </div>
-              <input type="file" accept=".pdf" @change="handleFileUpload($event, 'main')" hidden ref="mainFileInput" />
+        </div>
+
+        <!-- Upload Sections -->
+        <div class="upload-section">
+          <div class="upload-box">
+            <div class="upload-content">
+              <p v-if="mainFile" class="upload-title">{{ mainFile.name }}</p>
+              <template v-else>
+                <p class="upload-title">Upload Documents</p>
+                <p class="upload-info">Only PDF files are accepted</p>
+                <p class="upload-info">Combine all drawing page(s) into one (1) PDF file</p>
+              </template>
             </div>
-          
-            <div class="upload-box">
-              <div class="upload-content">
-                <p v-if="additionalFile" class="upload-title">{{ additionalFile.name }}</p>
-                <template v-else>
-                  <p class="upload-title">Upload Additional Documents (if necessary)</p>
-                  <p class="upload-info">Only PDF files are accepted</p>
-                </template>
-              </div>
-              <button class="upload-btn" @click="triggerFileInput('additional')">Upload</button>
-              <input type="file" accept=".pdf" @change="handleFileUpload($event, 'additional')" hidden ref="additionalFileInput" />
+            <button v-if="mainFile" class="check-btn" @click="checkDocument">Check Document</button>
+            <button class="upload-btn" @click="triggerFileInput('main')">Upload</button>
+          </div>
+          <input type="file" accept=".pdf" @change="handleFileUpload($event, 'main')" hidden ref="mainFileInput" />
+
+          <div class="upload-box">
+            <div class="upload-content">
+              <p v-if="additionalFile" class="upload-title">{{ additionalFile.name }}</p>
+              <template v-else>
+                <p class="upload-title">Upload Additional Documents (if necessary)</p>
+                <p class="upload-info">Only PDF files are accepted</p>
+              </template>
             </div>
-            <div class="form-buttons">
+            <button class="upload-btn" @click="triggerFileInput('additional')">Upload</button>
+          </div>
+          <input type="file" accept=".pdf" @change="handleFileUpload($event, 'additional')" hidden ref="additionalFileInput" />
+
+          <!-- Upload Progress -->
+          <div v-if="uploadProgress > 0" class="progress-bar">
+            <p>Uploading: {{ uploadProgress }}%</p>
+          </div>
+
+          <div class="form-buttons">
             <button type="button" class="btn btn-back" @click="goBack">Back</button>
             <button type="button" class="btn btn-next" @click="goNext">Next</button>
           </div>
-          </div>
         </div>
       </div>
-  </template>
-  
-  <script setup>
-  import { ref } from 'vue';
-  import { useRouter } from 'vue-router';
+    </div>
+  </div>
+</template>
 
-  const router = useRouter();
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { storage, db, auth } from '@/firebase';
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
-  const steps = ref([
-    { id: 1, label: "Basic Information" },
-    { id: 2, label: "Document" },
-    { id: 3, label: "Documents Checklist" },
-    { id: 4, label: "Review" },
-  ]);
-  
-  const currentStep = ref(2);
-  const mainFile = ref(null);
-  const additionalFile = ref(null);
-  const mainFileInput = ref(null);
-  const additionalFileInput = ref(null);
-  
-  const triggerFileInput = (type) => {
-    if (type === "main") mainFileInput.value.click();
-    else additionalFileInput.value.click();
-  };
-  
-  const handleFileUpload = (event, type) => {
-    const file = event.target.files[0];
-    if (file && file.type === "application/pdf") {
-      if (type === "main") mainFile.value = file;
-      else additionalFile.value = file;
-      console.log(`Uploaded ${type} file:`, file.name);
+const router = useRouter();
+const user = ref(null);
+
+onMounted(() => {
+  onAuthStateChanged(auth, (currentUser) => {
+    if (currentUser) {
+      user.value = currentUser;
+    }
+  });
+});
+
+const steps = ref([
+  { id: 1, label: "Basic Information" },
+  { id: 2, label: "Document" },
+  { id: 3, label: "Documents Checklist" },
+  { id: 4, label: "Review" },
+]);
+
+const currentStep = ref(2);
+const mainFile = ref(null);
+const additionalFile = ref(null);
+const mainFileInput = ref(null);
+const additionalFileInput = ref(null);
+const uploadProgress = ref(0);
+
+const triggerFileInput = (type) => {
+  if (type === "main") mainFileInput.value.click();
+  else additionalFileInput.value.click();
+};
+
+const handleFileUpload = (event, type) => {
+  const file = event.target.files[0];
+  if (file && file.type === "application/pdf") {
+    if (type === "main") {
+      mainFile.value = file;
+      uploadFile(file, "main");
     } else {
-      alert("Only PDF files are accepted.");
+      additionalFile.value = file;
+      uploadFile(file, "additional");
     }
-  };
+  } else {
+    alert("Only PDF files are accepted.");
+  }
+};
 
-  const goBack = () => {
-    router.push('/ips1'); // Redirect to ips1.vue
-  };
+const uploadFile = async (file, type) => {
+  if (!user.value) {
+    alert("You must be logged in to upload files.");
+    return;
+  }
 
-  const goNext = () => {
-    router.push('/ips3'); // Redirect to ips3.vue
-  };
+  const fileRef = storageRef(storage, `IP_Protection/${user.value.uid}/${file.name}`);
+  const uploadTask = uploadBytesResumable(fileRef, file);
 
-  const checkDocument = () => {
-    if (mainFile.value) {
-      alert(`Checking document: ${mainFile.value.name}`);
-      // Add your document checking logic here
+  uploadTask.on(
+    "state_changed",
+    (snapshot) => {
+      uploadProgress.value = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+    },
+    (error) => {
+      console.error("Upload failed:", error);
+      alert("Error uploading file.");
+    },
+    async () => {
+      const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+      await saveToFirestore(file.name, downloadURL, type);
     }
-  };
-  </script>
+  );
+};
+
+const saveToFirestore = async (fileName, fileURL, type) => {
+  try {
+    await addDoc(collection(db, "IP_Protection"), {
+      fileName,
+      fileURL,
+      fileType: type,
+      uploadedAt: serverTimestamp(),
+      uploaderId: user.value.uid,
+      uploaderEmail: user.value.email,
+    });
+    alert("File uploaded successfully!");
+  } catch (error) {
+    console.error("Error saving file:", error);
+    alert("Failed to save file.");
+  }
+};
+
+const goBack = () => {
+  router.push('/ips1');
+};
+
+const goNext = () => {
+  router.push('/ips3');
+};
+
+const checkDocument = () => {
+  if (mainFile.value) {
+    alert(`Checking document: ${mainFile.value.name}`);
+  }
+};
+</script>
+
   
   <style>
   /* Basic styling */
@@ -255,14 +317,15 @@ import { useRouter } from "next/navigation"
   
   /* Buttons */
   .form-buttons {
-  display: flex;
+    display: flex;
     justify-content: center;
     gap: 20px;
     margin-top: 30px;
-    position: fixed;
-    left: 0;
-    right: 0;
-}
+    position: relative; /* Change from fixed to relative */
+    width: 100%;
+    padding-bottom: 20px; /* Ensure some spacing at the bottom */
+  }
+  
 
 .btn {
   padding: 10px 30px;

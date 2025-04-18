@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <h1 class="form-title">Document Checklist</h1>
-    
+
     <!-- Progress Bar -->
     <div class="progress-container">
       <div class="progress-bar">
@@ -41,7 +41,7 @@
       <!-- Right Column - Assessment Form -->
       <div class="form-section">
         <h2>Initial Assessment</h2>
-        
+
         <section class="form-group">
           <h3>Novel Ideas Assessment</h3>
           <div class="text-list">
@@ -97,6 +97,9 @@ import { ref, onMounted, toRaw } from "vue";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useRouter } from 'vue-router';
+import { db, auth } from "@/firebase";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 const router = useRouter();
 
@@ -104,11 +107,12 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 // PDF Viewer state
 const pdfCanvas = ref(null);
-const pdfUrl = "/examplepdf.pdf";
+const pdfUrl = ref(null); // Set dynamically based on the latest uploaded file
 const pdfDoc = ref(null);
 const currentPage = ref(1);
 const totalPages = ref(0);
 const scale = ref(1.5);
+const user = ref(null);
 
 // Progress bar data
 const steps = ref([
@@ -120,6 +124,28 @@ const steps = ref([
 
 const currentStep = ref(3); // Set to current step (3)
 
+// Fetch the latest uploaded file for the user
+const fetchLatestFile = async () => {
+  onAuthStateChanged(auth, async (currentUser) => {
+    if (currentUser) {
+      user.value = currentUser;
+      const q = query(
+        collection(db, "IP_Protection"),
+        where("uploaderId", "==", currentUser.uid),
+        orderBy("uploadedAt", "desc"),
+        limit(1)
+      );
+
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const latestFile = querySnapshot.docs[0].data();
+        pdfUrl.value = latestFile.fileURL; // Set the PDF URL to the latest uploaded file
+        loadPDF();
+      }
+    }
+  });
+};
+
 // PDF rendering functions
 const renderPage = async (pageNumber) => {
   if (!pdfDoc.value) return;
@@ -130,7 +156,7 @@ const renderPage = async (pageNumber) => {
     const canvas = pdfCanvas.value;
     const context = canvas.getContext("2d");
     const viewport = page.getViewport({ scale: scale.value });
-    
+
     canvas.width = viewport.width;
     canvas.height = viewport.height;
 
@@ -144,8 +170,10 @@ const renderPage = async (pageNumber) => {
 };
 
 const loadPDF = async () => {
+  if (!pdfUrl.value) return;
+
   try {
-    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    const loadingTask = pdfjsLib.getDocument(pdfUrl.value);
     pdfDoc.value = await loadingTask.promise;
     totalPages.value = pdfDoc.value.numPages;
     await renderPage(currentPage.value);
@@ -182,15 +210,16 @@ const zoomOut = async () => {
 
 // Navigation between steps
 const goBack = () => {
-  router.push('/ips2'); // Redirect to ips2.vue
+  router.push('/ips2');
 };
 
 const goNext = () => {
-  router.push('/ips4'); // Redirect to ips4.vue
+  router.push('/ips4');
 };
 
-onMounted(loadPDF);
+onMounted(fetchLatestFile);
 </script>
+
 
 <style scoped>
 /* Page Container */
