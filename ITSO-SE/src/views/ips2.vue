@@ -20,12 +20,11 @@
             <div class="upload-content">
               <p v-if="mainFile" class="upload-title">{{ mainFile.name }}</p>
               <template v-else>
-                <p class="upload-title">Upload Documents</p>
+                <p class="upload-title">Upload Main Document</p>
                 <p class="upload-info">Only PDF files are accepted</p>
                 <p class="upload-info">Combine all drawing page(s) into one (1) PDF file</p>
               </template>
             </div>
-            <button v-if="mainFile" class="check-btn" @click="checkDocument">Check Document</button>
             <button class="upload-btn" @click="triggerFileInput('main')">Upload</button>
           </div>
           <input type="file" accept=".pdf" @change="handleFileUpload($event, 'main')" hidden ref="mainFileInput" />
@@ -42,11 +41,7 @@
           </div>
           <input type="file" accept=".pdf" @change="handleFileUpload($event, 'additional')" hidden ref="additionalFileInput" />
 
-          <!-- Upload Progress -->
-          <div v-if="uploadProgress > 0" class="progress-bar">
-            <p>Uploading: {{ uploadProgress }}%</p>
-          </div>
-
+          <!-- Buttons -->
           <div class="form-buttons">
             <button type="button" class="btn btn-back" @click="goBack">Back</button>
             <button type="button" class="btn btn-next" @click="goNext">Next</button>
@@ -58,23 +53,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { storage, db, auth } from '@/firebase';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { useFormStore } from '@/stores/formStoreips';
 
 const router = useRouter();
-const user = ref(null);
-
-onMounted(() => {
-  onAuthStateChanged(auth, (currentUser) => {
-    if (currentUser) {
-      user.value = currentUser;
-    }
-  });
-});
+const form = useFormStore();
 
 const steps = ref([
   { id: 1, label: "Basic Information" },
@@ -84,15 +68,25 @@ const steps = ref([
 ]);
 
 const currentStep = ref(2);
-const mainFile = ref(null);
-const additionalFile = ref(null);
+
+// Bind files to Pinia store
+const mainFile = computed({
+  get: () => form.mainDocument,
+  set: (val) => form.mainDocument = val,
+});
+
+const additionalFile = computed({
+  get: () => form.additionalDocument,
+  set: (val) => form.additionalDocument = val,
+});
+
+// Refs for file inputs
 const mainFileInput = ref(null);
 const additionalFileInput = ref(null);
-const uploadProgress = ref(0);
 
 const triggerFileInput = (type) => {
   if (type === "main") mainFileInput.value.click();
-  else additionalFileInput.value.click();
+  else if (type === "additional") additionalFileInput.value.click();
 };
 
 const handleFileUpload = (event, type) => {
@@ -100,72 +94,18 @@ const handleFileUpload = (event, type) => {
   if (file && file.type === "application/pdf") {
     if (type === "main") {
       mainFile.value = file;
-      uploadFile(file, "main");
     } else {
       additionalFile.value = file;
-      uploadFile(file, "additional");
     }
   } else {
     alert("Only PDF files are accepted.");
   }
 };
 
-const uploadFile = async (file, type) => {
-  if (!user.value) {
-    alert("You must be logged in to upload files.");
-    return;
-  }
-
-  const fileRef = storageRef(storage, `IP_Protection/${user.value.uid}/${file.name}`);
-  const uploadTask = uploadBytesResumable(fileRef, file);
-
-  uploadTask.on(
-    "state_changed",
-    (snapshot) => {
-      uploadProgress.value = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-    },
-    (error) => {
-      console.error("Upload failed:", error);
-      alert("Error uploading file.");
-    },
-    async () => {
-      const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-      await saveToFirestore(file.name, downloadURL, type);
-    }
-  );
-};
-
-const saveToFirestore = async (fileName, fileURL, type) => {
-  try {
-    await addDoc(collection(db, "IP_Protection"), {
-      fileName,
-      fileURL,
-      fileType: type,
-      uploadedAt: serverTimestamp(),
-      uploaderId: user.value.uid,
-      uploaderEmail: user.value.email,
-    });
-    alert("File uploaded successfully!");
-  } catch (error) {
-    console.error("Error saving file:", error);
-    alert("Failed to save file.");
-  }
-};
-
-const goBack = () => {
-  router.push('/ips1');
-};
-
-const goNext = () => {
-  router.push('/ips3');
-};
-
-const checkDocument = () => {
-  if (mainFile.value) {
-    alert(`Checking document: ${mainFile.value.name}`);
-  }
-};
+const goBack = () => router.push('/ips1');
+const goNext = () => router.push('/ips3');
 </script>
+
 
   
   <style>

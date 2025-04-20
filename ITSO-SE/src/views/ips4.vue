@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <h1 class="form-title">Review Submission</h1>
-    
+
     <!-- Progress Bar -->
     <div class="progress-container">
       <div class="progress-bar">
@@ -14,30 +14,19 @@
 
     <!-- Main Content Container -->
     <div class="main-content">
-      <!-- Two Column Layout -->
       <div class="two-column-layout">
         <!-- Left Column -->
         <div class="column">
           <div class="section-container">
-            <h2 class="section-title">Basic Information</h2>
-            <div class="review-grid">
-              <div class="review-item">
-                <div class="review-label">Title</div>
-                <div class="review-value">{{ formData.title || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Category</div>
-                <div class="review-value">{{ formData.category || 'Not selected' }}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="section-container">
-            <h2 class="section-title">Inventor Information</h2>
+            <h2 class="section-title">Applicant Information</h2>
             <div class="review-grid">
               <div class="review-item">
                 <div class="review-label">Full Name</div>
                 <div class="review-value">{{ formData.fullName || 'Not provided' }}</div>
+              </div>
+              <div class="review-item">
+                <div class="review-label">Position</div>
+                <div class="review-value">{{ formData.position || 'Not provided' }}</div>
               </div>
               <div class="review-item">
                 <div class="review-label">Email</div>
@@ -49,42 +38,30 @@
               </div>
               <div class="review-item">
                 <div class="review-label">Department</div>
-                <div class="review-value">{{ formData.department || 'Not selected' }}</div>
+                <div class="review-value">{{ formData.department || 'Not provided' }}</div>
               </div>
             </div>
           </div>
         </div>
-        
+
         <!-- Right Column -->
         <div class="column">
           <div class="section-container">
             <h2 class="section-title">Uploaded Documents</h2>
             <div class="documents-list">
-              <div class="document-item" :class="{ 'document-missing': !formData.mainDocument }">
+              <div class="document-item" :class="{ 'document-missing': !formData.uploadedFiles.length }">
                 <div class="document-icon">
-                  <i class="document-status-icon" :class="formData.mainDocument ? 'icon-check' : 'icon-missing'"></i>
+                  <i class="document-status-icon" :class="formData.uploadedFiles.length > 0 ? 'icon-check' : 'icon-missing'"></i>
                 </div>
                 <div class="document-details">
-                  <div class="document-name">Main Document</div>
-                  <div v-if="formData.mainDocument" class="document-filename">
-                    {{ formData.mainDocument.name }}
-                    <button class="view-btn" @click="viewDocument('main')">View</button>
+                  <div class="document-name">Uploaded Documents</div>
+                  <div v-if="formData.uploadedFiles.length > 0" v-for="(file, index) in formData.uploadedFiles" :key="index">
+                    <div class="document-filename">
+                      {{ file.name }}
+                      <button class="view-btn" @click="viewDocument(file)">View</button>
+                    </div>
                   </div>
-                  <div v-else class="document-missing-text">Document not uploaded</div>
-                </div>
-              </div>
-
-              <div class="document-item" :class="{ 'document-optional': !formData.additionalDocument }">
-                <div class="document-icon">
-                  <i class="document-status-icon" :class="formData.additionalDocument ? 'icon-check' : 'icon-optional'"></i>
-                </div>
-                <div class="document-details">
-                  <div class="document-name">Additional Document</div>
-                  <div v-if="formData.additionalDocument" class="document-filename">
-                    {{ formData.additionalDocument.name }}
-                    <button class="view-btn" @click="viewDocument('additional')">View</button>
-                  </div>
-                  <div v-else class="document-optional-text">Optional document</div>
+                  <div v-else class="document-missing-text">No documents uploaded</div>
                 </div>
               </div>
             </div>
@@ -93,27 +70,34 @@
           <!-- Confirmation Section -->
           <div class="confirmation-section">
             <label class="checkbox-label">
-              <input type="checkbox" v-model="confirmSubmission">
+              <input type="checkbox" v-model="confirmSubmission" />
               <span class="checkbox-custom"></span>
               <span class="checkbox-text">I confirm that all the information provided is accurate and complete</span>
             </label>
           </div>
         </div>
       </div>
-
-      <!-- Navigation Buttons - Now inside main-content -->
-      
     </div>
-    <!-- Move the form-buttons div outside of main-content and make it fixed at bottom -->
+
+    <!-- Loading Spinner -->
+    <div v-if="isLoading" class="loading-spinner-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Uploading Files...</div>
+    </div>
+
+    <!-- Fixed Bottom Buttons -->
     <div class="fixed-buttons">
       <button class="btn btn-back" @click="goBack">Back</button>
-      <button 
-        class="btn btn-next" 
-        :disabled="!confirmSubmission"
-        @click="goNext"
-      >
-        Submit
-      </button>
+      <button class="btn btn-next" :disabled="!confirmSubmission" @click="goNext">Submit</button>
+    </div>
+
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="modal-overlay">
+      <div class="modal-container">
+        <h2 class="modal-title">Submission Successful!</h2>
+        <p>Your submission has been successfully completed. You will be redirected to the home page shortly.</p>
+        <button class="btn btn-close" @click="goBack">Close</button>
+      </div>
     </div>
   </div>
 </template>
@@ -121,63 +105,163 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useFormStore } from '@/stores/formStoreips';
+
+import { db, storage } from '@/firebase';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const router = useRouter();
+const formStore = useFormStore();
 const confirmSubmission = ref(false);
 
-// Progress bar data
 const steps = ref([
-  { id: 1, label: "Basic Information" },
-  { id: 2, label: "Document" },
-  { id: 3, label: "Documents Checklist" },
+  { id: 1, label: "Applicant Information" },
+  { id: 2, label: "Document Upload" },
+  { id: 3, label: "Checklist" },
   { id: 4, label: "Review" }
 ]);
 
 const currentStep = ref(4);
 
-// Mock form data - Replace with your actual form store data
 const formData = ref({
-  title: 'Example Project Title',
-  category: 'Research',
-  fullName: 'John Doe',
-  email: 'john.doe@example.com',
-  contactNumber: '+1234567890',
-  department: 'Engineering',
-  mainDocument: { name: 'document.pdf' },
-  additionalDocument: null
+  fullName: formStore.fullName,
+  position: formStore.position,
+  email: formStore.email,
+  contactNumber: formStore.contactNumber,
+  department: formStore.department,
+  uploadedFiles: formStore.uploadedFiles
 });
+
+const isLoading = ref(false); // For the spinner
+const showSuccessModal = ref(false); // For the success modal
 
 const goBack = () => {
   router.push('/ips3');
 };
 
-const goNext = () => {
-  router.push('/');
-};
-
-const viewDocument = (type) => {
-  // Implement document viewing logic
-  console.log(`Viewing ${type} document`);
-};
-
-const submitForm = async () => {
-  if (!confirmSubmission.value) {
-    return;
-  }
+const goNext = async () => {
+  if (!confirmSubmission.value) return;
 
   try {
-    // Implement your form submission logic here
-    console.log('Submitting form...');
-    // On success, redirect to confirmation page
-    router.push('/submission-success');
+    isLoading.value = true;
+    const pdfUrls = [];
+
+    for (const file of formData.value.uploadedFiles) {
+      const filePath = `submissions/ipapplication/${Date.now()}_${file.name}`;
+      const fileRef = storageRef(storage, filePath);
+      const snapshot = await uploadBytes(fileRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      pdfUrls.push({ name: file.name, url: downloadURL });
+    }
+
+    const submissionData = {
+      fullName: formData.value.fullName,
+      position: formData.value.position,
+      email: formData.value.email,
+      contactNumber: formData.value.contactNumber,
+      department: formData.value.department,
+      uploadedDocuments: pdfUrls,
+      createdAt: serverTimestamp()
+    };
+
+    const docRef = doc(collection(db, 'submissions', 'ipapplication', 'entries'));
+    await setDoc(docRef, submissionData);
+
+    formStore.resetForm();
+    
+    // Show success modal
+    showSuccessModal.value = true;
+
+    // Redirect after a delay
+    setTimeout(() => {
+      router.push('/');
+    }, 3000);
   } catch (error) {
-    console.error('Error submitting form:', error);
+    console.error('Error during submission:', error);
     alert('An error occurred while submitting the form. Please try again.');
+  } finally {
+    isLoading.value = false;
   }
+};
+
+const viewDocument = (file) => {
+  const fileURL = URL.createObjectURL(file);
+  window.open(fileURL, '_blank');
 };
 </script>
 
 <style scoped>
+/* Add your spinner style */
+.loading-spinner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  z-index: 100;
+}
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid #fff;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 20px;
+  font-size: 16px;
+}
+
+/* Success Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  width: 400px;
+  text-align: center;
+}
+
+.modal-title {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.btn-close {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #5cb85c;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
 /* Page Container */
 .page-container {
   min-height: 100vh;

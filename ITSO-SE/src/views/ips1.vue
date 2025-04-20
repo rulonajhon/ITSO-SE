@@ -27,37 +27,36 @@
         </div>
 
         <!-- Form Content -->
-        <form @submit.prevent="submitForm">
-          <!-- Section 1: Applicant Information -->
+        <form @submit.prevent="goNext">
           <div class="form-section">
             <h2 class="section-title">1. Applicant Information</h2>
 
             <div class="form-group">
               <label>Full Name</label>
-              <input type="text" v-model="formData.fullName" required />
+              <input type="text" v-model="form.fullName" required />
             </div>
 
             <div class="form-group">
               <label>Position/Title</label>
-              <input type="text" v-model="formData.position" required />
+              <input type="text" v-model="form.position" required />
             </div>
 
             <div class="form-group">
               <label>Email</label>
-              <input type="email" v-model="formData.email" required />
+              <input type="email" v-model="form.email" required />
             </div>
 
             <div class="form-row">
               <div class="form-group half">
                 <label>Contact Number</label>
-                <input type="tel" v-model="formData.contactNumber" required />
+                <input type="tel" v-model="form.contactNumber" required />
               </div>
 
               <div class="form-group half">
                 <label>Department</label>
                 <div class="select-wrapper">
-                  <select v-model="formData.department" required>
-                    <option value="" disabled selected>Select Department</option>
+                  <select v-model="form.department" required>
+                    <option value="" disabled>Select Department</option>
                     <option value="engineering">Engineering</option>
                     <option value="science">Science</option>
                     <option value="arts">Arts</option>
@@ -70,7 +69,7 @@
             </div>
           </div>
 
-          <!-- Fixed buttons at the bottom -->
+          <!-- Fixed buttons -->
           <div class="fixed-buttons">
             <button type="button" class="btn btn-back" @click="goBack">Back</button>
             <button type="submit" class="btn btn-next">Next</button>
@@ -82,47 +81,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { db } from '../firebase'; // Ensure Firebase is configured
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFormStore } from '@/stores/formStoreips';
 
 const router = useRouter();
+const form = useFormStore();
 
-const formData = ref({
-  fullName: '',
-  position: '',
-  email: '',
-  contactNumber: '',
-  department: '',
-  activityType: 'research',
-  eventName: '',
-  eventDate: '',
-  eventLocation: '',
-  organizer: '',
-  projectTitle: '',
-  projectDescription: '',
-  ipProtection: 'with',
-});
-
-const submitForm = async () => {
-  try {
-    await addDoc(collection(db, 'submissions'), {
-      ...formData.value,
-      createdAt: serverTimestamp(), // Add timestamp
-    });
-    alert('Submission Successful!');
-    router.push('/ips2'); // Redirect to next step
-  } catch (error) {
-    console.error('Error submitting form:', error);
-    alert('Submission failed. Please try again.');
-  }
+const goNext = () => {
+  router.push('/ips2');
 };
 
 const goBack = () => {
   router.push('/disclaimer');
 };
 </script>
+
 
 <style>
 /* Reset and Global Styles */

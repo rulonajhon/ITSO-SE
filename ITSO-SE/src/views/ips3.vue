@@ -97,24 +97,22 @@ import { ref, onMounted, toRaw } from "vue";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useRouter } from 'vue-router';
-import { db, auth } from "@/firebase";
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
-
-const router = useRouter();
+import { useFormStore } from '@/stores/formStoreips';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
+const router = useRouter();
+const form = useFormStore(); // Access the form store
+
 // PDF Viewer state
 const pdfCanvas = ref(null);
-const pdfUrl = ref(null); // Set dynamically based on the latest uploaded file
+const pdfUrl = ref(null);
 const pdfDoc = ref(null);
 const currentPage = ref(1);
 const totalPages = ref(0);
-const scale = ref(1.5);
-const user = ref(null);
+const scale = ref(1);
 
-// Progress bar data
+// Progress bar
 const steps = ref([
   { id: 1, label: "Basic Information" },
   { id: 2, label: "Document" },
@@ -122,31 +120,31 @@ const steps = ref([
   { id: 4, label: "Review" }
 ]);
 
-const currentStep = ref(3); // Set to current step (3)
+const currentStep = ref(3);
 
-// Fetch the latest uploaded file for the user
-const fetchLatestFile = async () => {
-  onAuthStateChanged(auth, async (currentUser) => {
-    if (currentUser) {
-      user.value = currentUser;
-      const q = query(
-        collection(db, "IP_Protection"),
-        where("uploaderId", "==", currentUser.uid),
-        orderBy("uploadedAt", "desc"),
-        limit(1)
-      );
+// Load local PDF (uploaded earlier in ips2.vue)
+const loadPDFfromLocal = async () => {
+  if (!form.mainDocument) {
+    console.warn("No PDF file found in form store.");
+    return;
+  }
 
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const latestFile = querySnapshot.docs[0].data();
-        pdfUrl.value = latestFile.fileURL; // Set the PDF URL to the latest uploaded file
-        loadPDF();
-      }
+  try {
+    if (form.uploadedFiles.length === 0) {
+      form.uploadedFiles.push({ name: form.mainDocument.name, file: form.mainDocument });
     }
-  });
+    const blobUrl = URL.createObjectURL(form.mainDocument);
+    pdfUrl.value = blobUrl;
+
+    const loadingTask = pdfjsLib.getDocument(blobUrl);
+    pdfDoc.value = await loadingTask.promise;
+    totalPages.value = pdfDoc.value.numPages;
+    await renderPage(currentPage.value);
+  } catch (error) {
+    console.error("Error loading local PDF:", error);
+  }
 };
 
-// PDF rendering functions
 const renderPage = async (pageNumber) => {
   if (!pdfDoc.value) return;
 
@@ -169,20 +167,7 @@ const renderPage = async (pageNumber) => {
   }
 };
 
-const loadPDF = async () => {
-  if (!pdfUrl.value) return;
-
-  try {
-    const loadingTask = pdfjsLib.getDocument(pdfUrl.value);
-    pdfDoc.value = await loadingTask.promise;
-    totalPages.value = pdfDoc.value.numPages;
-    await renderPage(currentPage.value);
-  } catch (error) {
-    console.error("Error loading PDF:", error);
-  }
-};
-
-// Navigation functions
+// PDF Navigation
 const nextPage = async () => {
   if (currentPage.value < totalPages.value) {
     currentPage.value++;
@@ -197,7 +182,6 @@ const prevPage = async () => {
   }
 };
 
-// Zoom functions
 const zoomIn = async () => {
   scale.value *= 1.2;
   await renderPage(currentPage.value);
@@ -208,7 +192,7 @@ const zoomOut = async () => {
   await renderPage(currentPage.value);
 };
 
-// Navigation between steps
+// Navigation Buttons
 const goBack = () => {
   router.push('/ips2');
 };
@@ -217,7 +201,7 @@ const goNext = () => {
   router.push('/ips4');
 };
 
-onMounted(fetchLatestFile);
+onMounted(loadPDFfromLocal);
 </script>
 
 

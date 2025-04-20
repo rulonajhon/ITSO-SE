@@ -33,6 +33,7 @@ const routes = [
     { path: '/login', component: Login },
     { path: '/signup', component: Signup },
     { path: '/home', component: homepage },
+    
 ];
 
 const router = createRouter({
