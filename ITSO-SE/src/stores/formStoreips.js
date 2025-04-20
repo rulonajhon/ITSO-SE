@@ -11,7 +11,9 @@ export const useFormStore = defineStore('formStoreips', () => {
   const department = ref('');
 
   // Step 2: Uploaded Documents
-  const uploadedFiles = ref([]); // Array of { name, file }
+  const uploadedFiles = ref([]); // Optional for any extra uploaded docs
+  const mainDocument = ref(null); // Main file for annotation
+  const additionalDocument = ref(null); // Optional additional file
 
   // Step 3: Checklist
   const checklist = ref({
@@ -23,7 +25,6 @@ export const useFormStore = defineStore('formStoreips', () => {
   // Step 4: Final Review
   const reviewed = ref(false);
 
-  // Expose all properties
   return {
     fullName,
     position,
@@ -31,6 +32,8 @@ export const useFormStore = defineStore('formStoreips', () => {
     contactNumber,
     department,
     uploadedFiles,
+    mainDocument,
+    additionalDocument,
     checklist,
     reviewed,
   };

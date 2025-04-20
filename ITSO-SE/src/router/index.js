@@ -13,6 +13,7 @@ import Contacts from '../views/contacts.vue';
 import Login from '../views/login.vue';
 import Signup from '../views/signup.vue';
 import homepage from '../views/homeview.vue';
+import adminip from '../views/adminips.vue';
 import Admincs3 from '../views/admincs3.vue'
 
 
@@ -33,6 +34,7 @@ const routes = [
     { path: '/login', component: Login },
     { path: '/signup', component: Signup },
     { path: '/home', component: homepage },
+    { path: '/adminips', component: adminip },
     
 ];
 
