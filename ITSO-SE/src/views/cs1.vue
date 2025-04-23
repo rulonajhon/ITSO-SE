@@ -8,21 +8,17 @@
         <!-- Progress Bar -->
         <div class="progress-container">
           <div class="progress-bar">
-            <div :class="['progress-step', currentStep >= 1 ? 'active' : '']">
+            <div class="progress-step active">
               <div class="step-circle">1</div>
               <div class="step-label">Basic Information</div>
             </div>
-            <div :class="['progress-step', currentStep >= 2 ? 'active' : '']">
+            <div class="progress-step">
               <div class="step-circle">2</div>
               <div class="step-label">Documents</div>
             </div>
-            <div :class="['progress-step', currentStep >= 3 ? 'active' : '']">
+            <div class="progress-step">
               <div class="step-circle">3</div>
               <div class="step-label">Review</div>
-            </div>
-            <div :class="['progress-step', currentStep >= 4 ? 'active' : '']">
-              <div class="step-circle">4</div>
-              <div class="step-label">Complete</div>
             </div>
           </div>
         </div>
@@ -66,7 +62,7 @@
             </div>
 
             <div class="form-section">
-              <h2 class="section-title">Inmate Information</h2>
+              <h2 class="section-title">Applicant Information</h2>
 
               <div class="form-group">
                 <label>Full Name</label>
@@ -92,11 +88,19 @@
                   <div class="select-wrapper">
                     <select v-model="formData.department" required>
                       <option value="" disabled selected>Select Department</option>
-                      <option value="engineering">Engineering</option>
-                      <option value="science">Science</option>
-                      <option value="arts">Arts</option>
-                      <option value="business">Business</option>
-                      <option value="medicine">Medicine</option>
+                      <option value="elementary">Elementary</option>
+                      <option value="juniorHighschool">Junior Highschool</option>
+                      <option value="seniorHighschool">Senior Highschool</option>
+                      <option value="engineering">College of Accounting and Business Education</option>
+                      <option value="science">College of Arts and Humanities</option>
+                      <option value="arts">College of Computer Studies</option>
+                      <option value="business">College of Engineering and Architecture</option>
+                      <option value="human_env">College of Human Environment Science and Food Studies</option>
+                      <option value="medical">College of Medical and Biological Sciences</option>
+                      <option value="music">College of Music</option>
+                      <option value="nursing">College of Nursing</option>
+                      <option value="pharmacy">College of Pharmacy and Chemistry</option>
+                      <option value="education">College of Teacher Education</option>
                     </select>
                     <div class="select-arrow">▼</div>
                   </div>
@@ -120,19 +124,28 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { db, auth } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { auth } from '@/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useFormStore } from '@/stores/formStorecs';
 
 const router = useRouter();
+const formStore = useFormStore();
 const user = ref(null);
-const currentStep = ref(1);
 const errors = ref({});
 
 // Track authenticated user
 onAuthStateChanged(auth, (currentUser) => {
   if (currentUser) {
     user.value = currentUser;
+    console.log('CS1: User authenticated', { 
+      uid: currentUser.uid, 
+      email: currentUser.email 
+    });
+    formStore.updateCurrentUser(); // Update user in store
+  } else {
+    console.log('CS1: No user authenticated, redirecting to login');
+    // Redirect to login if not authenticated
+    router.push('/login');
   }
 });
 
@@ -146,12 +159,11 @@ const formData = ref({
   department: '',
 });
 
-// Load saved draft from localStorage
+// Load saved data from formStore
 onMounted(() => {
-  const savedForm = localStorage.getItem('submissionDraft');
-  if (savedForm) {
-    formData.value = JSON.parse(savedForm);
-  }
+  formStore.loadSavedData();
+  // Copy data from store to local state
+  formData.value = { ...formStore.basicInfo };
 });
 
 // Validate Form
@@ -166,13 +178,13 @@ const validateForm = () => {
   return Object.keys(errors.value).length === 0; // If no errors, return true
 };
 
-// Save Draft to Local Storage
+// Save Draft to FormStore and Local Storage
 const saveDraft = () => {
-  localStorage.setItem('submissionDraft', JSON.stringify(formData.value));
+  formStore.saveBasicInfo(formData.value);
   alert("Draft saved successfully!");
 };
 
-// Submit Form
+// Submit Form and proceed to next step
 const submitForm = async () => {
   if (!validateForm()) {
     alert("Please fill in all required fields.");
@@ -184,20 +196,9 @@ const submitForm = async () => {
     return;
   }
 
-  try {
-    await addDoc(collection(db, "submission_competition"), {
-      ...formData.value,
-      submittedBy: user.value.uid,
-      submittedEmail: user.value.email,
-      submittedAt: serverTimestamp(), // Keep timestamp for tracking
-    });
-
-    alert("Submission successful!");
-    router.push('/cs2'); // Redirect to next step
-  } catch (error) {
-    console.error("Error submitting form:", error);
-    alert("Failed to submit. Please try again.");
-  }
+  // Save to formStore and move to next step
+  formStore.saveBasicInfo(formData.value);
+  router.push('/cs2');
 };
 
 // Go Back to Previous Page
@@ -205,7 +206,6 @@ const goBack = () => {
   router.go(-1);
 };
 </script>
-
 
 <style>
 /* Reset and Global Styles */
@@ -457,7 +457,7 @@ select {
 .btn {
   padding: 10px 30px;
   border: none;
-  border-radius: 20px;
+  border-radius: 20px !important;
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s;

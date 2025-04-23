@@ -9,7 +9,7 @@
           <div class="progress-bar">
             <div class="progress-step">
               <div class="step-circle">1</div>
-              <div class="step-label">Application Information</div>
+              <div class="step-label">Basic Information</div>
             </div>
             <div class="progress-step">
               <div class="step-circle">2</div>
@@ -24,93 +24,56 @@
 
         <!-- Review Section -->
         <div class="review-container">
-          <!-- Section 1: Applicant Information -->
+          <!-- Section 1: Basic Information -->
           <div class="review-section">
-            <h2 class="section-title">1. Applicant Information</h2>
-            <div class="review-grid">
-              <div class="review-item">
-                <div class="review-label">Full Name</div>
-                <div class="review-value">{{ applicantInfo.fullName }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Position/Title</div>
-                <div class="review-value">{{ applicantInfo.position }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Email</div>
-                <div class="review-value">{{ applicantInfo.email }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Contact Number</div>
-                <div class="review-value">{{ applicantInfo.contactNumber }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Department</div>
-                <div class="review-value">{{ applicantInfo.department }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 2: Event/Public Details -->
-          <div class="review-section">
-            <h2 class="section-title">2. Event/Public Details</h2>
-            <div class="review-grid">
-              <div class="review-item">
-                <div class="review-label">Type of Activity</div>
-                <div class="review-value">{{ getActivityLabel(eventDetails.activityType) }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Name of Event/Journal</div>
-                <div class="review-value">{{ eventDetails.eventName }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Date(s) of Event/Submission Deadline</div>
-                <div class="review-value">{{ eventDetails.eventDate }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Location (Venue/Online)</div>
-                <div class="review-value">{{ eventDetails.eventLocation }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Organizer/Publisher</div>
-                <div class="review-value">{{ eventDetails.organizer }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section 3: Project/Research/Publication Information -->
-          <div class="review-section">
-            <h2 class="section-title">3. Project/Research/Publication Information</h2>
+            <h2 class="section-title">1. Basic Information</h2>
             <div class="review-grid">
               <div class="review-item">
                 <div class="review-label">Title</div>
-                <div class="review-value">{{ projectInfo.projectTitle }}</div>
-              </div>
-              <div class="review-item full-width">
-                <div class="review-label">Description</div>
-                <div class="review-value">{{ projectInfo.projectDescription }}</div>
+                <div class="review-value">{{ formStore.basicInfo.title }}</div>
               </div>
               <div class="review-item">
-                <div class="review-label">IP Protection</div>
-                <div class="review-value">
-                  {{ projectInfo.ipProtection === 'with' ? 'With IP Protection' : 'Without IP Protection' }}
-                </div>
+                <div class="review-label">Category</div>
+                <div class="review-value">{{ getCategoryLabel(formStore.basicInfo.category) }}</div>
               </div>
             </div>
           </div>
 
-          <!-- Section 4: Uploaded Documents -->
+          <!-- Section 2: Applicant Information -->
           <div class="review-section">
-            <h2 class="section-title">4. Uploaded Documents</h2>
+            <h2 class="section-title">2. Applicant Information</h2>
+            <div class="review-grid">
+              <div class="review-item">
+                <div class="review-label">Full Name</div>
+                <div class="review-value">{{ formStore.basicInfo.fullName }}</div>
+              </div>
+              <div class="review-item">
+                <div class="review-label">Email</div>
+                <div class="review-value">{{ formStore.basicInfo.email }}</div>
+              </div>
+              <div class="review-item">
+                <div class="review-label">Contact Number</div>
+                <div class="review-value">{{ formStore.basicInfo.contactNumber }}</div>
+              </div>
+              <div class="review-item">
+                <div class="review-label">Department</div>
+                <div class="review-value">{{ getDepartmentLabel(formStore.basicInfo.department) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Uploaded Documents -->
+          <div class="review-section">
+            <h2 class="section-title">3. Uploaded Documents</h2>
             <div class="documents-list">
-              <div class="document-item" v-for="(file, key) in documents" :key="key">
+              <div class="document-item" v-for="(file, key) in formStore.documents" :key="key">
                 <div class="document-icon">
                   <span v-if="file" class="checkmark">✔️</span>
                   <span v-else class="missing">❌</span>
                 </div>
                 <div class="document-details">
                   <div class="document-name">{{ getFileLabel(key) }}</div>
-                  <div v-if="file">{{ file.name }}</div>
+                  <div v-if="file" class="document-filename">{{ file.name }}</div>
                   <div v-else class="document-missing-text">Document not uploaded</div>
                 </div>
               </div>
@@ -126,16 +89,21 @@
             </label>
           </div>
 
+          <!-- Submission Status -->
+          <div v-if="submissionStatus" class="submission-status" :class="submissionStatus.type">
+            {{ submissionStatus.message }}
+          </div>
+
           <!-- Navigation Buttons -->
           <div class="below-buttons">
             <button type="button" class="btn btn-back" @click="goBack">Back</button>
             <button 
               type="button" 
               class="btn btn-submit" 
-              :disabled="!confirmSubmission || isSubmitting" 
+              :disabled="!confirmSubmission || formStore.isLoading" 
               @click="submitForm"
             >
-              {{ isSubmitting ? 'Submitting...' : 'Submit' }}
+              {{ formStore.isLoading ? 'Submitting...' : 'Submit' }}
             </button>
           </div>
         </div>
@@ -145,46 +113,73 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { auth } from '@/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { useFormStore } from '../stores/formStore';
+import { useFormStore } from '@/stores/formStorecs';
 
 const router = useRouter();
 const formStore = useFormStore();
 const confirmSubmission = ref(false);
-const isSubmitting = ref(false);
 const user = ref(null);
+const submissionStatus = ref(null);
+
+// Load saved data when component mounts
+onMounted(() => {
+  formStore.loadSavedData();
+});
+
+// Track authenticated user
+onMounted(() => {
+  formStore.loadSavedData();
+  console.log('CS3: Component mounted, saved data loaded');
+});
 
 // Track authenticated user
 onAuthStateChanged(auth, (currentUser) => {
-  user.value = currentUser;
+  if (currentUser) {
+    user.value = currentUser;
+    console.log('CS3: User authenticated', { 
+      uid: currentUser.uid, 
+      email: currentUser.email 
+    });
+    formStore.updateCurrentUser(); // Update user in store
+  } else {
+    console.log('CS3: No user authenticated, redirecting to login');
+    // Redirect to login if not authenticated
+    router.push('/login');
+  }
 });
 
-// Retrieve data from formStore
-const applicantInfo = computed(() => formStore.applicantInfo);
-const eventDetails = computed(() => formStore.eventDetails);
-const projectInfo = computed(() => formStore.projectInfo);
-const documents = computed(() => formStore.documents);
-
-// Check if all required documents are uploaded
-const isReadyToSubmit = computed(() => {
-  return (
-    documents.value.guidelines &&
-    documents.value.documents &&
-    documents.value.request
-  );
-});
-
-// Get activity label
-const getActivityLabel = (type) => {
-  const labels = {
-    conference: 'Conference',
-    journal: 'Journal Publication',
-    seminar: 'Seminar',
+// Helper functions for displaying labels
+const getCategoryLabel = (category) => {
+  const categories = {
+    'research': 'Research',
+    'testing': 'Testing',
+    'software': 'All Software',
+    'others': 'Others'
   };
-  return labels[type] || 'Other';
+  return categories[category] || category;
+};
+
+const getDepartmentLabel = (dept) => {
+  const departments = {
+    'elementary': 'Elementary',
+    'juniorHighschool': 'Junior Highschool',
+    'seniorHighschool': 'Senior Highschool',
+    'engineering': 'College of Accounting and Business Education',
+    'science': 'College of Arts and Humanities',
+    'arts': 'College of Computer Studies',
+    'business': 'College of Engineering and Architecture',
+    'human_env': 'College of Human Environment Science and Food Studies',
+    'medical': 'College of Medical and Biological Sciences',
+    'music': 'College of Music',
+    'nursing': 'College of Nursing',
+    'pharmacy': 'College of Pharmacy and Chemistry',
+    'education': 'College of Teacher Education'
+  };
+  return departments[dept] || dept;
 };
 
 // Get document label
@@ -193,10 +188,19 @@ const getFileLabel = (key) => {
     guidelines: 'Event/Publication Guidelines',
     documents: 'Documents',
     request: 'Request Document',
-    additional: 'Additional Document',
+    additional: 'Additional Document (Optional)'
   };
   return labels[key] || 'Unknown Document';
 };
+
+// Check if all required documents are present
+const isReadyToSubmit = computed(() => {
+  return (
+    formStore.documents.guidelines &&
+    formStore.documents.documents &&
+    formStore.documents.request
+  );
+});
 
 // Go back to previous step
 const goBack = () => router.push('/cs2');
@@ -204,34 +208,89 @@ const goBack = () => router.push('/cs2');
 // Submit Form
 const submitForm = async () => {
   if (!user.value) {
-    alert('You must be logged in to submit.');
+    submissionStatus.value = {
+      type: 'error',
+      message: 'You must be logged in to submit.'
+    };
     return;
   }
 
   if (!isReadyToSubmit.value) {
-    alert('Please upload all required documents before submitting.');
+    submissionStatus.value = {
+      type: 'error',
+      message: 'Please upload all required documents before submitting.'
+    };
     return;
   }
 
   if (!confirmSubmission.value) {
-    alert('Please confirm your submission.');
+    submissionStatus.value = {
+      type: 'error',
+      message: 'Please confirm your submission.'
+    };
     return;
   }
 
-  isSubmitting.value = true;
   try {
-    await formStore.submitForm();
-    alert('Submission successful!');
+    submissionStatus.value = {
+      type: 'pending',
+      message: 'Submitting your competition entry...'
+    };
+    
+    // This will handle both file uploads and form submission
+    const submissionId = await formStore.submitForm();
+    
+    submissionStatus.value = {
+      type: 'success',
+      message: 'Submission successful!'
+    };
+    
+    // Reset form data after successful submission
     formStore.resetForm();
-    router.push('/submission-confirmation');
+    
+    // Redirect to confirmation page with submission ID
+    setTimeout(() => {
+      router.push({
+        path: '/submission-confirmation',
+        query: { id: submissionId }
+      });
+    }, 1500);
   } catch (error) {
-    alert('Submission failed, please try again.');
-    console.error(error);
-  } finally {
-    isSubmitting.value = false;
+    console.error('Error during submission:', error);
+    submissionStatus.value = {
+      type: 'error',
+      message: `Submission failed: ${error.message}`
+    };
   }
 };
 </script>
+
+<style scoped>
+.submission-status {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+.submission-status.error {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #f87171;
+}
+
+.submission-status.success {
+  background-color: #d1fae5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
+}
+
+.submission-status.pending {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #7dd3fc;
+}
+</style>
 
 
 <style>
@@ -551,6 +610,8 @@ body, html {
   font-size: 16px;
   cursor: pointer;
   transition: all 0.3s;
+  background-color: #ff6b8a;
+  color: white;
 }
 
 .btn-back {

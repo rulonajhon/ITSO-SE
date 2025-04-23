@@ -9,7 +9,7 @@
           <div class="progress-bar">
             <div class="progress-step">
               <div class="step-circle">1</div>
-              <div class="step-label">Application Information</div>
+              <div class="step-label">Basic Information</div>
             </div>
             <div class="progress-step active">
               <div class="step-circle">2</div>
@@ -26,7 +26,7 @@
         <form @submit.prevent="submitForm">
           <!-- Section 5: Attachments -->
           <div class="form-section">
-            <h2 class="section-title">5. Attachments</h2>
+            <h2 class="section-title">Upload Documents</h2>
 
             <div class="document-section">
               <h3 class="document-title">Event/Publication Guidelines</h3>
@@ -122,7 +122,7 @@
 
             <div class="below-buttons">
               <button type="button" class="btn btn-back" @click="goBack">Back</button>
-              <button type="button" class="btn btn-next" @click="uploadFilesAndGoNext">Next</button>
+              <button type="button" class="btn btn-next" @click="saveAndGoNext">Next</button>
             </div>
           </div>
         </form>
@@ -132,13 +132,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { auth, storage } from '@/firebase';
+import { auth } from '@/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useFormStore } from '@/stores/formStorecs';
 
 const router = useRouter();
+const formStore = useFormStore();
 
 // Track authenticated user
 const user = ref(null);
@@ -146,6 +147,15 @@ const user = ref(null);
 onAuthStateChanged(auth, (currentUser) => {
   if (currentUser) {
     user.value = currentUser;
+    console.log('CS2: User authenticated', { 
+      uid: currentUser.uid, 
+      email: currentUser.email 
+    });
+    formStore.updateCurrentUser(); // Update user in store
+  } else {
+    console.log('CS2: No user authenticated, redirecting to login');
+    // Redirect to login if not authenticated
+    router.push('/login');
   }
 });
 
@@ -161,6 +171,16 @@ const selectedFiles = ref({
   documents: null,
   request: null,
   additional: null
+});
+
+// Check if we have documents already in the store
+onMounted(() => {
+  // Load any existing documents from formStore if needed
+  // This would be useful if the user navigates back from step 3
+  if (formStore.documents.guidelines) selectedFiles.value.guidelines = formStore.documents.guidelines;
+  if (formStore.documents.documents) selectedFiles.value.documents = formStore.documents.documents;
+  if (formStore.documents.request) selectedFiles.value.request = formStore.documents.request;
+  if (formStore.documents.additional) selectedFiles.value.additional = formStore.documents.additional;
 });
 
 // Trigger file input click
@@ -204,40 +224,28 @@ const handleFileSelection = (type) => {
   }
 };
 
-// Upload files when "Next" is clicked
-const uploadFilesAndGoNext = async () => {
+// Save files to store and proceed to next step
+const saveAndGoNext = () => {
   if (!user.value) {
     alert("You must be logged in to proceed.");
     return;
   }
 
-  try {
-    for (const type in selectedFiles.value) {
-      if (selectedFiles.value[type]) {
-        const file = selectedFiles.value[type];
-        const filePath = `submission_competition/${user.value.uid}/${type}.pdf`;
-        const fileRef = storageRef(storage, filePath);
-        
-        await uploadBytes(fileRef, file);
-        const downloadURL = await getDownloadURL(fileRef);
-        console.log(`Uploaded ${type}: ${downloadURL}`);
-      }
-    }
-
-    router.push('/cs3');
-  } catch (error) {
-    console.error("File upload failed:", error);
-    alert("File upload failed. Please try again.");
+  // Check if required files are uploaded
+  if (!selectedFiles.value.guidelines || !selectedFiles.value.documents || !selectedFiles.value.request) {
+    alert("Please upload all required documents before proceeding.");
+    return;
   }
+
+  // Save files to formStore
+  formStore.saveDocuments(selectedFiles.value);
+  router.push('/cs3');
 };
 
 // Navigation functions
 const goBack = () => router.push('/cs1');
 
 </script>
-
-
-
 
 <style>
 /* Reset and Global Styles */

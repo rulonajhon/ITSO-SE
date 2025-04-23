@@ -6,7 +6,7 @@
 
         <!-- Progress Bar -->
         <div class="progress-container">
-          <div class="progress-bar">
+          <div class="ips1-progress-bar">
             <div class="progress-step active">
               <div class="step-circle">1</div>
               <div class="step-label">Application Information</div>
@@ -57,20 +57,28 @@
                 <div class="select-wrapper">
                   <select v-model="form.department" required>
                     <option value="" disabled>Select Department</option>
-                    <option value="engineering">Engineering</option>
-                    <option value="science">Science</option>
-                    <option value="arts">Arts</option>
-                    <option value="business">Business</option>
-                    <option value="medicine">Medicine</option>
+                    <option value="elementary">Elementary</option>
+                    <option value="juniorHighschool">Junior Highschool</option>
+                    <option value="seniorHighschool">Senior Highschool</option>
+                    <option value="accounting">College of Accounting and Business Education</option>
+                    <option value="arts">College of Arts and Humanities</option>
+                    <option value="ccs">College of Computer Studies</option>
+                    <option value="engineering">College of Engineering and Architecture</option>
+                    <option value="environment">College of Human Environment Science and Food Studies</option>
+                    <option value="medical">College of Medical and Biological Sciences</option>
+                    <option value="music">College of Music</option>
+                    <option value="nursing">College of Nursing</option>
+                    <option value="pharmacy">College of Pharmacy and Chemistry</option>
+                    <option value="education">College of Teacher Education</option>
                   </select>
                   <div class="select-arrow">▼</div>
                 </div>
               </div>
             </div>
           </div>
-
+          
           <!-- Fixed buttons -->
-          <div class="fixed-buttons">
+          <div class="form-buttons">
             <button type="button" class="btn btn-back" @click="goBack">Back</button>
             <button type="submit" class="btn btn-next">Next</button>
           </div>
@@ -94,8 +102,12 @@ const goNext = () => {
 const goBack = () => {
   router.push('/disclaimer');
 };
-</script>
 
+const saveDraft = () => {
+  // Save draft functionality here
+  console.log('Saving draft...');
+};
+</script>
 
 <style>
 /* Reset and Global Styles */
@@ -104,6 +116,94 @@ body, html {
   padding: 0;
   box-sizing: border-box;
   background-color: white;
+}
+
+/* Progress Bar */
+.progress-container {
+  margin-bottom: 30px;
+  position: relative;
+}
+
+/* Progress bar - controls the horizontal line */
+.ips1-progress-bar {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 30px;
+  padding-top: 15px;
+}
+
+/* Progress bar line - Only extends to Basic Information */
+.ips1-progress-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 30%;
+  height: 10px;
+  background-color: #ff6b8a;
+  border-radius: 4px;
+  z-index: 1;
+}
+
+/* Inactive part of the line */
+.ips1-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 30%;
+  width: 70%;
+  height: 10px;
+  background-color: #ddd;
+  border-radius: 4px;
+  z-index: 0;
+}
+
+/* Step container */
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+/* Default inactive step */
+.progress-step .step-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #ddd;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+/* Active step styling */
+.progress-step.active .step-circle {
+  background-color: #ff6b8a;
+  color: white;
+}
+
+/* Step labels */
+.progress-step .step-label {
+  color: #999;
+  font-size: 11px;
+  text-align: center;
+  font-weight: 400;
+  max-width: 80px;
+  line-height: 1.2;
+}
+
+/* Active step label */
+.progress-step.active .step-label {
+  color: #ff6b8a;
+  font-weight: 700;
 }
 
 /* Page Wrapper */
@@ -137,81 +237,6 @@ body, html {
   margin-bottom: 20px;
   font-size: 24px;
   font-weight: bold;
-}
-
-/* Progress bar container */
-.progress-container {
-  margin-bottom: 30px;
-  position: relative;
-}
-
-/* Progress bar - controls the horizontal line */
-.progress-bar {
-  display: flex;
-  justify-content: space-between;
-  position: relative;
-  margin-bottom: 30px;
-  padding-top: 15px; /* Space for the line */
-}
-
-/* Progress bar line - Only extends to Basic Information */
-.progress-bar::before {
-  content: '';
-  position: absolute;
-  top: 0; /* Align with step circles */
-  left: 0;
-  width: 30%; /* Adjusted to match Basic Information step */
-  height: 10px; /* Thicker line */
-  background-color: #ff6b8a; /* Highlighted color */
-  border-radius: 4px;
-  z-index: 1;
-}
-
-/* Step container */
-.progress-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-  flex: 1;
-}
-
-/* Default inactive step */
-.progress-step .step-circle {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: #ddd; /* Gray for inactive */
-  color: #666;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 500;
-  font-size: 12px;
-  margin-bottom: 8px;
-}
-
-/* Highlight only Basic Information step */
-.progress-step.active .step-circle {
-  background-color: #ff6b8a;
-  color: white;
-}
-
-/* Inactive step labels should be gray */
-.progress-step .step-label {
-  color: #999;
-  font-size: 11px;
-  text-align: center;
-  font-weight: 400;
-  max-width: 80px;
-  line-height: 1.2;
-}
-
-/* Highlight Basic Information label */
-.progress-step.active .step-label {
-  color: #ff6b8a;
-  font-weight: 700;
 }
 
 /* Form Section Styles */
@@ -327,12 +352,8 @@ select {
   opacity: 1;
 }
 
-/* Fixed Buttons */
-.fixed-buttons {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+/* Form Buttons */
+.form-buttons {
   display: flex;
   justify-content: center;
   gap: 20px;
@@ -340,6 +361,10 @@ select {
   background-color: white;
   border-top: 1px solid #eee;
   z-index: 100;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 .btn {
@@ -349,6 +374,11 @@ select {
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s;
+}
+
+.btn-save {
+  background-color: #ff6b8a;
+  color: white;
 }
 
 .btn-back {
@@ -363,5 +393,14 @@ select {
 
 .btn:hover {
   opacity: 0.9;
+}
+
+.add-author {
+  background-color: #FF8BA7;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
 }
 </style>

@@ -21,9 +21,8 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { auth, db } from '../firebase'; // Add Firestore
+import { auth } from '../firebase'; // Import Firebase Authentication
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore'; // Firestore methods
 
 const router = useRouter();
 const email = ref('');
@@ -36,26 +35,24 @@ const login = async () => {
   loading.value = true;
 
   try {
+    // Firebase Authentication
     const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
     const user = userCredential.user;
 
-    // 🔍 Get the user's role from Firestore
-    const userDocRef = doc(db, 'users', user.uid);
-    const userDocSnap = await getDoc(userDocRef);
+    // Reload to ensure latest user data is available
+    await user.reload();
 
-    if (userDocSnap.exists()) {
-      const userData = userDocSnap.data();
-      const role = userData.role;
+    const currentEmail = auth.currentUser.email?.toLowerCase();
 
-      // 🚀 Redirect based on role
-      if (role === 'admin') {
-        router.push('/adminips');
-      } else {
-        router.push('/home');
-      }
+    console.log('Current email:', currentEmail);
+
+    // Check against lowercase version to avoid casing issues
+    if (currentEmail === 'jrulona_180000001856@uic.edu.ph') {
+      router.push('/adminips');
     } else {
-      errorMessage.value = "User role not found.";
+      router.push('/home');
     }
+
   } catch (error) {
     errorMessage.value = "Invalid email or password.";
     console.error("Login error:", error.message);
@@ -64,6 +61,7 @@ const login = async () => {
   }
 };
 </script>
+
 
 
 <style scoped>

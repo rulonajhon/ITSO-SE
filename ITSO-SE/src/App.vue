@@ -1,14 +1,26 @@
 <template>
-    <Navbar />
-    <router-view />
+  <!-- Show regular Navbar if not admin route -->
+  <Navbar v-if="showUserNavbar" />
+  <!-- Show admin Navbar only for /adminips -->
+  <AdminNavbar v-if="showAdminNavbar" />
+  
+  <router-view />
 </template>
 
 <script setup>
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import Navbar from "@/components/navigationbar.vue";
+import AdminNavbar from "@/components/adminnavbar.vue";
+
+const route = useRoute();
+
+// Computed logic to decide which navbar to show
+const showAdminNavbar = computed(() => route.path === '/adminips');
+const showUserNavbar = computed(() => !showAdminNavbar.value);
 </script>
 
 <style>
-
 /* Global styles */
 *, *::before, *::after {
   margin: 0;
@@ -22,6 +34,4 @@ html, body {
   width: 100%;
   height: 100%;
 }
-
-
 </style>

@@ -1,102 +1,119 @@
 <template>
-  <div class="page-container">
-    <h1 class="form-title">Review Submission</h1>
+  <div class="page-wrapper">
+    <div class="page-container">
+      <h1 class="form-title">Review Submission</h1>
 
-    <!-- Progress Bar -->
-    <div class="progress-container">
-      <div class="progress-bar">
-        <div v-for="step in steps" :key="step.id" class="progress-step" :class="{ active: step.id <= currentStep }">
-          <div class="step-circle">{{ step.id }}</div>
-          <div class="step-label">{{ step.label }}</div>
+      <!-- Progress Bar from second file, integrated into first file's design -->
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div v-for="step in steps" :key="step.id" class="progress-step" :class="{ active: step.id <= currentStep }">
+            <div class="step-circle">{{ step.id }}</div>
+            <div class="step-label">{{ step.label }}</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Main Content Container -->
-    <div class="main-content">
-      <div class="two-column-layout">
-        <!-- Left Column -->
-        <div class="column">
-          <div class="section-container">
-            <h2 class="section-title">Applicant Information</h2>
-            <div class="review-grid">
-              <div class="review-item">
-                <div class="review-label">Full Name</div>
-                <div class="review-value">{{ formData.fullName || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Position</div>
-                <div class="review-value">{{ formData.position || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Email</div>
-                <div class="review-value">{{ formData.email || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Contact Number</div>
-                <div class="review-value">{{ formData.contactNumber || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Department</div>
-                <div class="review-value">{{ formData.department || 'Not provided' }}</div>
+      <!-- Main Content Container -->
+      <div class="main-content">
+        <div class="two-column-layout">
+          <!-- Left Column -->
+          <div class="column">
+            <div class="section-container">
+              <h2 class="section-title">Applicant Information</h2>
+              <div class="review-grid">
+                <div class="review-item">
+                  <div class="review-label">Full Name</div>
+                  <div class="review-value">{{ formData.fullName || 'Not provided' }}</div>
+                </div>
+                <div class="review-item">
+                  <div class="review-label">Position</div>
+                  <div class="review-value">{{ formData.position || 'Not provided' }}</div>
+                </div>
+                <div class="review-item">
+                  <div class="review-label">Email</div>
+                  <div class="review-value">{{ formData.email || 'Not provided' }}</div>
+                </div>
+                <div class="review-item">
+                  <div class="review-label">Contact Number</div>
+                  <div class="review-value">{{ formData.contactNumber || 'Not provided' }}</div>
+                </div>
+                <div class="review-item">
+                  <div class="review-label">Department</div>
+                  <div class="review-value">{{ formData.department || 'Not provided' }}</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Right Column -->
-        <div class="column">
-          <div class="section-container">
-            <h2 class="section-title">Uploaded Documents</h2>
-            <div class="documents-list">
-              <div class="document-item" :class="{ 'document-missing': !formData.uploadedFiles.length }">
-                <div class="document-icon">
-                  <i class="document-status-icon" :class="formData.uploadedFiles.length > 0 ? 'icon-check' : 'icon-missing'"></i>
-                </div>
-                <div class="document-details">
-                  <div class="document-name">Uploaded Documents</div>
-                  <div v-if="formData.uploadedFiles.length > 0" v-for="(file, index) in formData.uploadedFiles" :key="index">
-                    <div class="document-filename">
-                      {{ file.name }}
-                      <button class="view-btn" @click="viewDocument(file)">View</button>
-                    </div>
+          <!-- Right Column -->
+          <div class="column">
+            <div class="section-container">
+              <h2 class="section-title">Uploaded Documents</h2>
+              <div class="documents-list">
+                <div class="document-item" :class="{ 'document-missing': !formData.uploadedFiles.length }">
+                  <div class="document-icon">
+                    <i class="document-status-icon" :class="formData.uploadedFiles.length > 0 ? 'icon-check' : 'icon-missing'"></i>
                   </div>
-                  <div v-else class="document-missing-text">No documents uploaded</div>
+                  <div class="document-details">
+                    <div class="document-name">Uploaded Documents</div>
+                    <div v-if="formData.uploadedFiles.length > 0" v-for="(file, index) in formData.uploadedFiles" :key="index">
+                      <div class="document-filename">
+                        {{ file.name }}
+                        <button class="view-btn" @click="viewDocument(file)">View</button>
+                      </div>
+                    </div>
+                    <div v-else class="document-missing-text">No documents uploaded</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Confirmation Section -->
-          <div class="confirmation-section">
-            <label class="checkbox-label">
-              <input type="checkbox" v-model="confirmSubmission" />
-              <span class="checkbox-custom"></span>
-              <span class="checkbox-text">I confirm that all the information provided is accurate and complete</span>
-            </label>
+            <!-- Additional Document section from the first file -->
+            <div class="document-item" :class="{ 'document-optional': !formData.additionalFiles }">
+              <div class="document-icon">
+                <i class="document-status-icon" :class="formData.additionalFiles ? 'icon-check' : 'icon-optional'"></i>
+              </div>
+              <div class="document-details">
+                <div class="document-name">Additional Document</div>
+                <div v-if="formData.additionalFiles" class="document-filename">
+                  {{ formData.additional.name }}
+                  <button class="view-btn" @click="viewDocument('additional')">View</button>
+                </div>
+                <div v-else class="document-optional-text">Optional document</div>
+              </div>
+            </div>
+
+            <!-- Confirmation Section -->
+            <div class="confirmation-section">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="confirmSubmission" />
+                <span class="checkbox-custom"></span>
+                <span class="checkbox-text">I confirm that all the information provided is accurate and complete</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Loading Spinner -->
-    <div v-if="isLoading" class="loading-spinner-overlay">
-      <div class="spinner"></div>
-      <div class="loading-text">Uploading Files...</div>
-    </div>
+      <!-- Loading Spinner -->
+      <div v-if="isLoading" class="loading-spinner-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Uploading Files...</div>
+      </div>
 
-    <!-- Fixed Bottom Buttons -->
-    <div class="fixed-buttons">
-      <button class="btn btn-back" @click="goBack">Back</button>
-      <button class="btn btn-next" :disabled="!confirmSubmission" @click="goNext">Submit</button>
-    </div>
+      <!-- Fixed Bottom Buttons -->
+      <div class="form-buttons">
+        <button class="btn btn-back" @click="goBack">Back</button>
+        <button class="btn btn-next" :disabled="!confirmSubmission" @click="goNext">Submit</button>
+      </div>
 
-    <!-- Success Modal -->
-    <div v-if="showSuccessModal" class="modal-overlay">
-      <div class="modal-container">
-        <h2 class="modal-title">Submission Successful!</h2>
-        <p>Your submission has been successfully completed. You will be redirected to the home page shortly.</p>
-        <button class="btn btn-close" @click="goBack">Close</button>
+      <!-- Success Modal -->
+      <div v-if="showSuccessModal" class="modal-overlay">
+        <div class="modal-container">
+          <h2 class="modal-title">Submission Successful!</h2>
+          <p>Your submission has been successfully completed. You will be redirected to the home page shortly.</p>
+          <button class="btn btn-close" @click="goBack">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -130,7 +147,8 @@ const formData = ref({
   email: formStore.email,
   contactNumber: formStore.contactNumber,
   department: formStore.department,
-  uploadedFiles: formStore.uploadedFiles
+  uploadedFiles: formStore.uploadedFiles,
+  additionalFiles: formStore.additionalFiles
 });
 
 const isLoading = ref(false); // For the spinner
@@ -262,10 +280,15 @@ const viewDocument = (file) => {
   cursor: pointer;
   border-radius: 5px;
 }
+
 /* Page Container */
+.page-wrapper {
+  min-height: 100vh;
+}
+
 .page-container {
   min-height: 100vh;
-  padding: 1rem;
+  padding: 5rem 1rem 1rem 1rem;
   display: flex;
   flex-direction: column;
   max-width: 1400px;
@@ -571,7 +594,7 @@ const viewDocument = (file) => {
 }
 
 /* Form Buttons */
-.fixed-buttons {
+.form-buttons {
   position: fixed;
   bottom: 0;
   left: 0;
