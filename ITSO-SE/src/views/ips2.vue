@@ -101,10 +101,16 @@ const handleFileUpload = (event, type) => {
     } else {
       additionalFile.value = file;
     }
+
+    // Push to uploadedFiles for use in ips4.vue
+    if (!form.uploadedFiles.some(f => f.name === file.name)) {
+      form.uploadedFiles.push(file);
+    }
   } else {
     alert("Only PDF files are accepted.");
   }
 };
+
 
 // Add functionality for adding additional upload
 const addAdditionalUpload = () => {
@@ -115,6 +121,7 @@ const addAdditionalUpload = () => {
 
 const goBack = () => router.push('/ips1');
 const goNext = () => router.push('/ips3');
+
 </script>
 
 <style>

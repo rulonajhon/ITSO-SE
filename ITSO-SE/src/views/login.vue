@@ -1,19 +1,51 @@
+
 <template>
   <div class="login-container">
     <div class="login-box">
-      <h1>Login</h1>
-      <form @submit.prevent="login">
-        <div class="input-group">
-          <label for="email">UIC Email</label>
-          <input type="email" id="email" v-model="email" required placeholder="Enter your UIC email">
-        </div>
-        <div class="input-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" v-model="password" required placeholder="Enter your password">
-        </div>
-        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-        <button type="submit" :disabled="loading">{{ loading ? "Logging in..." : "Login" }}</button>
-      </form>
+      <!-- University Logo -->
+      <img src="../assets/logo.png" alt="University Logo" class="logo" />
+
+      <!-- Title -->
+      <div class="title-wrapper">
+        <h1 class="university-title">University of Immaculate Conception</h1>
+        <h2 class="itso-title">ITSO</h2>
+      </div>
+
+      <!-- Login Form -->
+      <div class="form-container">
+        <form @submit.prevent="login">
+          <div class="input-group">
+            <label for="email">UIC Email</label>
+            <input 
+              id="email" 
+              type="email" 
+              v-model="email" 
+              placeholder="Please fill out this field."
+              required 
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="password">Password</label>
+            <input 
+              id="password" 
+              type="password" 
+              v-model="password" 
+              placeholder="Please fill out this field."
+              required 
+            />
+          </div>
+
+          <div class="error-message" v-if="errorMessage">{{ errorMessage }}</div>
+
+          <div class="button-group">
+            <button type="button" class="back-btn" @click="goToSignup">Sign Up</button>
+            <button type="submit" class="login-btn" :disabled="loading">
+              {{ loading ? "Logging in..." : "Login" }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -39,20 +71,10 @@ const login = async () => {
     const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
     const user = userCredential.user;
 
-    // Reload to ensure latest user data is available
-    await user.reload();
+    console.log('User logged in:', user);
 
-    const currentEmail = auth.currentUser.email?.toLowerCase();
-
-    console.log('Current email:', currentEmail);
-
-    // Check against lowercase version to avoid casing issues
-    if (currentEmail === 'jrulona_180000001856@uic.edu.ph') {
-      router.push('/adminips');
-    } else {
-      router.push('/home');
-    }
-
+    // Redirect to dashboard
+    router.push('/home'); 
   } catch (error) {
     errorMessage.value = "Invalid email or password.";
     console.error("Login error:", error.message);
@@ -60,9 +82,11 @@ const login = async () => {
     loading.value = false;
   }
 };
+
+const goToSignup = () => {
+  router.push('/signup');
+};
 </script>
-
-
 
 <style scoped>
 /* Container styles */
@@ -90,57 +114,143 @@ const login = async () => {
   z-index: 1;
 }
 
-/* Login box styles */
 .login-box {
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1.75rem;
   border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  width: 300px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+  position: relative;
   z-index: 2;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.login-box h1 {
-  text-align: center;
-  margin-bottom: 20px;
+.logo {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 0.5rem;
+}
+
+.title-wrapper {
+  margin-bottom: 1rem;
+}
+
+.university-title {
+  font-size: 1.25rem;
   color: #333;
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+}
+
+.itso-title {
+  font-size: 1.75rem;
+  color: #ff4d7e;
+  margin: 0;
+  font-weight: bold;
+}
+
+.form-container {
+  margin: 1rem 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .input-group {
-  margin-bottom: 15px;
+  text-align: left;
 }
 
-.input-group label {
+label {
   display: block;
-  margin-bottom: 5px;
-  color: #555;
+  margin-bottom: 0.25rem;
+  color: #333;
+  font-size: 0.85rem;
 }
 
-.input-group input {
+input {
+  padding: 0.75rem;
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+  font-size: 0.95rem;
   box-sizing: border-box;
+  transition: border-color 0.2s;
 }
 
-button {
-  background-color: #4CAF50;
-  color: white;
-  padding: 10px 15px;
+input:focus {
+  border-color: #ff4d7e;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.back-btn, .login-btn {
+  padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  width: 100%;
+  font-size: 0.95rem;
+  font-weight: 500;
+  flex: 1;
+  transition: background-color 0.2s;
 }
 
-button:hover {
-  background-color: #3e8e41;
+.back-btn {
+  background: #e2e8f0;
+  color: #333;
+}
+
+.back-btn:hover {
+  background: #cbd5e1;
+}
+
+.login-btn {
+  background: #ff4d7e;
+  color: white;
+}
+
+.login-btn:hover {
+  background: #ff3366;
 }
 
 .error-message {
-  color: red;
-  margin-top: 10px;
-  text-align: center;
+  color: #e53e3e;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .login-box {
+    margin: 1rem;
+    padding: 1.25rem;
+    max-height: 80vh;
+  }
+
+  .university-title {
+    font-size: 1.1rem;
+  }
+
+  .itso-title {
+    font-size: 1.5rem;
+  }
+
+  input, .back-btn, .login-btn {
+    padding: 0.65rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
 }
 </style>

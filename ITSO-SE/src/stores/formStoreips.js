@@ -25,6 +25,24 @@ export const useFormStore = defineStore('formStoreips', () => {
   // Step 4: Final Review
   const reviewed = ref(false);
 
+  // Reset function
+  function resetForm() {
+    fullName.value = '';
+    position.value = '';
+    email.value = '';
+    contactNumber.value = '';
+    department.value = '';
+    uploadedFiles.value = [];
+    mainDocument.value = null;
+    additionalDocument.value = null;
+    checklist.value = {
+      manuscript: false,
+      plagiarismReport: false,
+      copyrightForm: false,
+    };
+    reviewed.value = false;
+  }
+
   return {
     fullName,
     position,
@@ -36,5 +54,6 @@ export const useFormStore = defineStore('formStoreips', () => {
     additionalDocument,
     checklist,
     reviewed,
+    resetForm
   };
 });

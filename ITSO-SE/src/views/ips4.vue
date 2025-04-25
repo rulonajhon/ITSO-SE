@@ -1,136 +1,133 @@
 <template>
-  <div class="page-wrapper">
-    <div class="page-container">
-      <h1 class="form-title">Review Submission</h1>
+  <div class="page-container">
+    <h1 class="form-title">Review Submission</h1>
 
-      <!-- Progress Bar from second file, integrated into first file's design -->
-      <div class="progress-container">
-        <div class="progress-bar">
-          <div v-for="step in steps" :key="step.id" class="progress-step" :class="{ active: step.id <= currentStep }">
-            <div class="step-circle">{{ step.id }}</div>
-            <div class="step-label">{{ step.label }}</div>
-          </div>
+    <!-- Progress Bar -->
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div v-for="step in steps" :key="step.id" class="progress-step" :class="{ active: step.id <= currentStep }">
+          <div class="step-circle">{{ step.id }}</div>
+          <div class="step-label">{{ step.label }}</div>
         </div>
       </div>
+    </div>
 
-      <!-- Main Content Container -->
-      <div class="main-content">
-        <div class="two-column-layout">
-          <!-- Left Column -->
-          <div class="column">
-            <div class="section-container">
-              <h2 class="section-title">Applicant Information</h2>
-              <div class="review-grid">
-                <div class="review-item">
-                  <div class="review-label">Full Name</div>
-                  <div class="review-value">{{ formData.fullName || 'Not provided' }}</div>
-                </div>
-                <div class="review-item">
-                  <div class="review-label">Position</div>
-                  <div class="review-value">{{ formData.position || 'Not provided' }}</div>
-                </div>
-                <div class="review-item">
-                  <div class="review-label">Email</div>
-                  <div class="review-value">{{ formData.email || 'Not provided' }}</div>
-                </div>
-                <div class="review-item">
-                  <div class="review-label">Contact Number</div>
-                  <div class="review-value">{{ formData.contactNumber || 'Not provided' }}</div>
-                </div>
-                <div class="review-item">
-                  <div class="review-label">Department</div>
-                  <div class="review-value">{{ formData.department || 'Not provided' }}</div>
-                </div>
+    <!-- Main Content Container -->
+    <div class="main-content">
+      <div class="two-column-layout">
+        <!-- Left Column -->
+        <div class="column">
+          <div class="section-container">
+            <h2 class="section-title">Applicant Information</h2>
+            <div class="review-grid">
+              <div class="review-item">
+                <div class="review-label">Full Name</div>
+                <div class="review-value">{{ formData.fullName || 'Not provided' }}</div>
+              </div>
+              <div class="review-item">
+                <div class="review-label">Position</div>
+                <div class="review-value">{{ formData.position || 'Not provided' }}</div>
+              </div>
+              <div class="review-item">
+                <div class="review-label">Email</div>
+                <div class="review-value">{{ formData.email || 'Not provided' }}</div>
+              </div>
+              <div class="review-item">
+                <div class="review-label">Contact Number</div>
+                <div class="review-value">{{ formData.contactNumber || 'Not provided' }}</div>
+              </div>
+              <div class="review-item">
+                <div class="review-label">Department</div>
+                <div class="review-value">{{ formData.department || 'Not provided' }}</div>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Right Column -->
-          <div class="column">
-            <div class="section-container">
-              <h2 class="section-title">Uploaded Documents</h2>
-              <div class="documents-list">
-                <div class="document-item" :class="{ 'document-missing': !formData.uploadedFiles.length }">
-                  <div class="document-icon">
-                    <i class="document-status-icon" :class="formData.uploadedFiles.length > 0 ? 'icon-check' : 'icon-missing'"></i>
-                  </div>
-                  <div class="document-details">
-                    <div class="document-name">Uploaded Documents</div>
-                    <div v-if="formData.uploadedFiles.length > 0" v-for="(file, index) in formData.uploadedFiles" :key="index">
-                      <div class="document-filename">
-                        {{ file.name }}
-                        <button class="view-btn" @click="viewDocument(file)">View</button>
-                      </div>
+        <!-- Right Column -->
+        <div class="column">
+          <div class="section-container">
+            <h2 class="section-title">Uploaded Documents</h2>
+            <div class="documents-list">
+              <div class="document-item" :class="{ 'document-missing': !formData.uploadedFiles.length }">
+                <div class="document-icon">
+                  <i class="document-status-icon" :class="formData.uploadedFiles.length > 0 ? 'icon-check' : 'icon-missing'"></i>
+                </div>
+                <div class="document-details">
+                  <div class="document-name">Uploaded Documents</div>
+                  <div v-if="formData.uploadedFiles.length > 0" v-for="(file, index) in formData.uploadedFiles" :key="index">
+                    <div class="document-filename">
+                      {{ file.name }}
+                      <button class="view-btn" @click="viewDocument(file)">View</button>
                     </div>
-                    <div v-else class="document-missing-text">No documents uploaded</div>
                   </div>
+                  <div v-else class="document-missing-text">No documents uploaded</div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Additional Document section from the first file -->
-            <div class="document-item" :class="{ 'document-optional': !formData.additionalFiles }">
-              <div class="document-icon">
-                <i class="document-status-icon" :class="formData.additionalFiles ? 'icon-check' : 'icon-optional'"></i>
-              </div>
-              <div class="document-details">
-                <div class="document-name">Additional Document</div>
-                <div v-if="formData.additionalFiles" class="document-filename">
-                  {{ formData.additional.name }}
-                  <button class="view-btn" @click="viewDocument('additional')">View</button>
-                </div>
-                <div v-else class="document-optional-text">Optional document</div>
-              </div>
-            </div>
-
-            <!-- Confirmation Section -->
-            <div class="confirmation-section">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="confirmSubmission" />
-                <span class="checkbox-custom"></span>
-                <span class="checkbox-text">I confirm that all the information provided is accurate and complete</span>
-              </label>
-            </div>
+          <!-- Confirmation Section -->
+          <div class="confirmation-section">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="confirmSubmission" />
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">I confirm that all the information provided is accurate and complete</span>
+            </label>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Loading Spinner -->
-      <div v-if="isLoading" class="loading-spinner-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text">Uploading Files...</div>
+    <!-- Loading Spinner -->
+    <div v-if="isLoading" class="loading-spinner-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Uploading Files... {{uploadProgress}}%</div>
+    </div>
+
+    <!-- Error Alert -->
+    <div v-if="errorMessage" class="error-alert">
+      <div class="error-message">
+        <strong>Error:</strong> {{ errorMessage }}
+        <button class="close-error" @click="errorMessage = ''">×</button>
       </div>
+    </div>
 
-      <!-- Fixed Bottom Buttons -->
-      <div class="form-buttons">
-        <button class="btn btn-back" @click="goBack">Back</button>
-        <button class="btn btn-next" :disabled="!confirmSubmission" @click="goNext">Submit</button>
-      </div>
+    <!-- Fixed Bottom Buttons -->
+    <div class="fixed-buttons">
+      <button class="btn btn-back" @click="goBack">Back</button>
+      <button class="btn btn-next" :disabled="!confirmSubmission || isLoading" @click="goNext">Submit</button>
+    </div>
 
-      <!-- Success Modal -->
-      <div v-if="showSuccessModal" class="modal-overlay">
-        <div class="modal-container">
-          <h2 class="modal-title">Submission Successful!</h2>
-          <p>Your submission has been successfully completed. You will be redirected to the home page shortly.</p>
-          <button class="btn btn-close" @click="goBack">Close</button>
-        </div>
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="modal-overlay">
+      <div class="modal-container">
+        <h2 class="modal-title">Submission Successful!</h2>
+        <p>Your submission has been successfully completed. You will be redirected to the home page shortly.</p>
+        <button class="btn btn-close" @click="closeModal">Close</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFormStore } from '@/stores/formStoreips';
 
-import { db, storage } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage, auth } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const router = useRouter();
 const formStore = useFormStore();
 const confirmSubmission = ref(false);
+const currentUser = ref(null);
+const isLoading = ref(false);
+const showSuccessModal = ref(false);
+const errorMessage = ref('');
+const uploadProgress = ref(0);
 
 const steps = ref([
   { id: 1, label: "Applicant Information" },
@@ -147,33 +144,91 @@ const formData = ref({
   email: formStore.email,
   contactNumber: formStore.contactNumber,
   department: formStore.department,
-  uploadedFiles: formStore.uploadedFiles,
-  additionalFiles: formStore.additionalFiles
+  uploadedFiles: formStore.uploadedFiles || []
 });
 
-const isLoading = ref(false); // For the spinner
-const showSuccessModal = ref(false); // For the success modal
+// Check authentication status
+onMounted(() => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser.value = user;
+    } else {
+      // Redirect to login page if not authenticated
+      router.push('/login');
+    }
+  });
+});
 
 const goBack = () => {
   router.push('/ips3');
 };
 
+const closeModal = () => {
+  showSuccessModal.value = false;
+  router.push('/');
+};
+
 const goNext = async () => {
-  if (!confirmSubmission.value) return;
+  if (!confirmSubmission.value || isLoading.value) return;
+  if (!currentUser.value) {
+    errorMessage.value = 'Authentication required. Please log in.';
+    return;
+  }
 
   try {
-    isLoading.value = true;
-    const pdfUrls = [];
+    console.log(formData.value.uploadedFiles)
+console.log(currentUser.value.uid)
 
-    for (const file of formData.value.uploadedFiles) {
-      const filePath = `submissions/ipapplication/${Date.now()}_${file.name}`;
-      const fileRef = storageRef(storage, filePath);
-      const snapshot = await uploadBytes(fileRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      pdfUrls.push({ name: file.name, url: downloadURL });
+    isLoading.value = true;
+    uploadProgress.value = 0;
+    const pdfUrls = [];
+    
+    // Handle file uploads one by one with progress tracking
+    if (formData.value.uploadedFiles && formData.value.uploadedFiles.length > 0) {
+      for (let i = 0; i < formData.value.uploadedFiles.length; i++) {
+        const file = formData.value.uploadedFiles[i];
+        // Include userId in the path to match storage rules
+        const filePath = `submissions/ipapplication/${currentUser.value.uid}/${Date.now()}_${file.name}`;
+        const fileRef = storageRef(storage, filePath);
+        
+        // Use uploadBytesResumable to track progress
+        const uploadTask = uploadBytesResumable(fileRef, file);
+        
+        // Create a promise that resolves when the upload is complete
+        await new Promise((resolve, reject) => {
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              // Calculate progress percentage
+              const progress = Math.round(
+                (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+              );
+              uploadProgress.value = progress;
+            },
+            (error) => {
+              // Handle errors
+              console.error('Upload error:', error);
+              errorMessage.value = `Error uploading file: ${error.message}`;
+              reject(error);
+            },
+            async () => {
+              // Upload completed successfully
+              try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                pdfUrls.push({ name: file.name, url: downloadURL });
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            }
+          );
+        });
+      }
     }
 
+    // Create submission data
     const submissionData = {
+      userId: currentUser.value.uid,
       fullName: formData.value.fullName,
       position: formData.value.position,
       email: formData.value.email,
@@ -183,21 +238,17 @@ const goNext = async () => {
       createdAt: serverTimestamp()
     };
 
-    const docRef = doc(collection(db, 'submissions', 'ipapplication', 'entries'));
-    await setDoc(docRef, submissionData);
+    // Add data to Firestore
+    await addDoc(collection(db, 'submissions'), submissionData);
 
+    // Reset form store
     formStore.resetForm();
     
     // Show success modal
     showSuccessModal.value = true;
-
-    // Redirect after a delay
-    setTimeout(() => {
-      router.push('/');
-    }, 3000);
   } catch (error) {
     console.error('Error during submission:', error);
-    alert('An error occurred while submitting the form. Please try again.');
+    errorMessage.value = `Submission error: ${error.message}`;
   } finally {
     isLoading.value = false;
   }
@@ -208,6 +259,33 @@ const viewDocument = (file) => {
   window.open(fileURL, '_blank');
 };
 </script>
+
+<style scoped>
+/* Add these styles for error message and progress display */
+.error-alert {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.close-error {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  margin-left: 10px;
+  color: #721c24;
+}
+
+/* Your existing styles here... */
+</style>
 
 <style scoped>
 /* Add your spinner style */
@@ -278,17 +356,11 @@ const viewDocument = (file) => {
   color: #fff;
   border: none;
   cursor: pointer;
-  border-radius: 5px;
-}
-
+  border-radius: 5px;}
 /* Page Container */
-.page-wrapper {
-  min-height: 100vh;
-}
-
 .page-container {
   min-height: 100vh;
-  padding: 5rem 1rem 1rem 1rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   max-width: 1400px;
@@ -594,7 +666,7 @@ const viewDocument = (file) => {
 }
 
 /* Form Buttons */
-.form-buttons {
+.fixed-buttons {
   position: fixed;
   bottom: 0;
   left: 0;
