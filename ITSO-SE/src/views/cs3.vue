@@ -74,7 +74,7 @@
                 <div class="document-details">
                   <div class="document-name">{{ getFileLabel(key) }}</div>
                   <div v-if="file" class="document-filename">{{ file.name }}</div>
-                  <div v-else class="document-missing-text">Document not uploaded</div>
+                  <div v-else class="document-missing-text">{{ isRequired(key) ? 'Required document not uploaded' : 'Optional document not uploaded' }}</div>
                 </div>
               </div>
             </div>
@@ -100,7 +100,7 @@
             <button 
               type="button" 
               class="btn btn-submit" 
-              :disabled="!confirmSubmission || formStore.isLoading" 
+              :disabled="!confirmSubmission || formStore.isLoading || !isReadyToSubmit" 
               @click="submitForm"
             >
               {{ formStore.isLoading ? 'Submitting...' : 'Submit' }}
@@ -126,11 +126,6 @@ const user = ref(null);
 const submissionStatus = ref(null);
 
 // Load saved data when component mounts
-onMounted(() => {
-  formStore.loadSavedData();
-});
-
-// Track authenticated user
 onMounted(() => {
   formStore.loadSavedData();
   console.log('CS3: Component mounted, saved data loaded');
@@ -191,6 +186,11 @@ const getFileLabel = (key) => {
     additional: 'Additional Document (Optional)'
   };
   return labels[key] || 'Unknown Document';
+};
+
+// Check if a document is required
+const isRequired = (key) => {
+  return key !== 'additional';
 };
 
 // Check if all required documents are present

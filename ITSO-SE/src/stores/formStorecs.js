@@ -82,12 +82,14 @@ export const useFormStore = defineStore('form', () => {
     try {
       console.log('Starting file uploads for user:', user.uid);
       const uploads = [];
+      const submissionId = `submission_${Date.now()}`;
       
       for (const type in documents.value) {
         if (documents.value[type]) {
           const file = documents.value[type];
-          // Organize files per user and competition
-          const filePath = `users/${user.uid}/competition_submissions/${Date.now()}/${type}.pdf`;
+          // Use the path structure that matches Firebase rules: submissions/competition/{userId}/{submissionId}/{fileName}
+          const filePath = `submissions/competition/${user.uid}/${submissionId}/${type}${getFileExtension(file.name)}`;
+          
           console.log(`Preparing to upload ${type} file:`, file.name, 'to path:', filePath);
           const fileRef = storageRef(storage, filePath);
           
@@ -112,13 +114,18 @@ export const useFormStore = defineStore('form', () => {
       const results = await Promise.all(uploads);
       console.log('All uploads completed:', results);
       
-      return fileURLs.value;
+      return { fileURLs: fileURLs.value, submissionId };
     } catch (error) {
       console.error('Error uploading files:', error);
       throw error;
     } finally {
       isLoading.value = false;
     }
+  };
+
+  // Helper function to get file extension
+  const getFileExtension = (filename) => {
+    return filename.substring(filename.lastIndexOf('.')) || '';
   };
 
   // Submit the entire form
@@ -136,12 +143,9 @@ export const useFormStore = defineStore('form', () => {
       
       // First upload all files
       console.log('Uploading files...');
-      const uploadedFiles = await uploadFiles();
+      const { fileURLs: uploadedFiles, submissionId } = await uploadFiles();
       console.log('Files uploaded successfully:', uploadedFiles);
-      
-      // Generate a unique submission ID
-      const submissionId = `submission_${Date.now()}`;
-      console.log('Generated submission ID:', submissionId);
+      console.log('Using submission ID:', submissionId);
 
       // Create reference to user's competitions collection
       const userCompetitionRef = collection(db, "users", user.uid, "competitions");
@@ -151,6 +155,7 @@ export const useFormStore = defineStore('form', () => {
         ...basicInfo.value,
         fileURLs: uploadedFiles,
         status: 'submitted',
+        submissionId,
         submittedAt: serverTimestamp(),
       };
       
@@ -166,6 +171,7 @@ export const useFormStore = defineStore('form', () => {
         status: 'submitted',
         userId: user.uid,
         userEmail: user.email,
+        submissionId,
         submittedAt: serverTimestamp(),
       };
       

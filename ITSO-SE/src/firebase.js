@@ -8,7 +8,7 @@ const firebaseConfig = {
   authDomain: "immacutech.firebaseapp.com",
   databaseURL: "https://immacutech-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "immacutech",
-  storageBucket: "immacutech.appspot.com",
+  storageBucket: "immacutech.firebasestorage.app",
   messagingSenderId: "737406616170",
   appId: "1:737406616170:web:85be4b0403e43e7802c013",
   measurementId: "G-CQ8N7TELR2"

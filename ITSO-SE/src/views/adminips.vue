@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-pink-50 p-6">
-    <h1 class="text-3xl font-bold mb-6 text-center text-pink-700">Submitted IP Protection Files</h1>
+    <h1 class="text-3xl font-bold mb-6 text-center text-pink-700">Submitted Applications</h1>
 
     <!-- Updated Table -->
     <div class="overflow-x-auto">
@@ -113,13 +113,13 @@
               </span>
             </td>
             <td class="p-3 text-center">
-              <a
-                :href="project.fileURL"
-                target="_blank"
+                <router-link
+                :to="`/adminviewips/${project.id}`"
                 class="inline-block bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded transition"
               >
                 View
-              </a>
+              </router-link>
+              
             </td>
           </tr>
           <tr v-if="paginatedProjects.length === 0">

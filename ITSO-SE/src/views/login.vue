@@ -67,20 +67,25 @@ const login = async () => {
   loading.value = true;
 
   try {
-    // Firebase Authentication
-    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
-    const user = userCredential.user;
+  // Firebase Authentication
+  const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
+  const user = userCredential.user;
 
-    console.log('User logged in:', user);
+  console.log('User logged in:', user);
 
-    // Redirect to dashboard
-    router.push('/home'); 
-  } catch (error) {
-    errorMessage.value = "Invalid email or password.";
-    console.error("Login error:", error.message);
-  } finally {
-    loading.value = false;
+  // Redirect based on email
+  if (user.email === 'jrulona_180000001856@uic.edu.ph') {
+    router.push('/adminips');
+  } else {
+    router.push('/home');
   }
+} catch (error) {
+  errorMessage.value = "Invalid email or password.";
+  console.error("Login error:", error.message);
+} finally {
+  loading.value = false;
+}
+
 };
 
 const goToSignup = () => {

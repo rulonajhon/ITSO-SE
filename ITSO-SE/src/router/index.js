@@ -18,6 +18,7 @@ import Admincs3 from '../views/admincs3.vue'
 import navigationbarVue from '@/components/adminnavbar.vue';
 import SubmissionConfirmation from '@/views/SubmissionConfirmation.vue'
 
+
 const routes = [
     { path: '/', component: LandingPage },
     { path: '/ipsdisclaimer', component: Ipdisclaimer },
@@ -37,6 +38,12 @@ const routes = [
     { path: '/home', component: homepage },
     { path: '/adminips', component: adminip },
     {path: '/adminnavbar', component: navigationbarVue},
+    {
+        path: '/adminviewips/:id',
+        name: 'AdminViewIps',
+        component: () => import('@/views/adminviewips.vue') // update path if needed
+      },
+      
     {path: '/submission-confirmation',name: 'SubmissionConfirmation',component: SubmissionConfirmation},
 ];
 

@@ -12,11 +12,12 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import Navbar from "@/components/navigationbar.vue";
 import AdminNavbar from "@/components/adminnavbar.vue";
-
 const route = useRoute();
 
 // Computed logic to decide which navbar to show
-const showAdminNavbar = computed(() => route.path === '/adminips');
+const showAdminNavbar = computed(() => {
+  return route.path.startsWith('/adminips') || route.path.startsWith('/adminviewips/');
+});
 const showUserNavbar = computed(() => !showAdminNavbar.value);
 </script>
 

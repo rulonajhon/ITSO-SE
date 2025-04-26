@@ -42,7 +42,16 @@
           </div>
           <input type="file" accept=".pdf" @change="handleFileUpload($event, 'additional')" hidden ref="additionalFileInput" />
 
-          <button class="add-file-btn" @click="addAdditionalUpload">+ Add Another File</button>
+          <div v-if="extraFiles.length > 0" class="extra-files-section">
+            <h3>Additional Files</h3>
+            <div v-for="(file, index) in extraFiles" :key="index" class="extra-file-item">
+              <span>{{ file.name }}</span>
+              <button class="remove-btn" @click="removeExtraFile(index)">Remove</button>
+            </div>
+          </div>
+
+          <button class="add-file-btn" @click="triggerFileInput('extra')">+ Add Another File</button>
+          <input type="file" accept=".pdf" @change="handleFileUpload($event, 'extra')" hidden ref="extraFileInput" multiple />
           
           <!-- Buttons -->
           <div class="form-buttons">
@@ -56,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFormStore } from '@/stores/formStoreips';
 
@@ -67,8 +76,8 @@ const form = useFormStore();
 const steps = ref([
   { id: 1, label: "Basic Information" },
   { id: 2, label: "Documents" },
-  { id: 3, label: "Review" },
-  { id: 4, label: "Complete" }
+  { id: 3, label: "Checklist" },
+  { id: 4, label: "Review" }
 ]);
 
 const currentStep = ref(2);
@@ -84,44 +93,97 @@ const additionalFile = computed({
   set: (val) => form.additionalDocument = val,
 });
 
+// Extra files (beyond main and additional)
+const extraFiles = computed(() => {
+  return form.uploadedFiles || [];
+});
+
 // Refs for file inputs
 const mainFileInput = ref(null);
 const additionalFileInput = ref(null);
+const extraFileInput = ref(null);
 
 const triggerFileInput = (type) => {
   if (type === "main") mainFileInput.value.click();
   else if (type === "additional") additionalFileInput.value.click();
+  else if (type === "extra") extraFileInput.value.click();
+};
+
+const validatePdf = (file) => {
+  if (!file) return false;
+  
+  // Check file type
+  if (file.type !== "application/pdf") {
+    alert("Only PDF files are accepted.");
+    return false;
+  }
+  
+  // Check file size (limit to 10MB)
+  const maxSizeInBytes = 10 * 1024 * 1024; // 10MB
+  if (file.size > maxSizeInBytes) {
+    alert("File size exceeds 10MB limit.");
+    return false;
+  }
+  
+  return true;
 };
 
 const handleFileUpload = (event, type) => {
-  const file = event.target.files[0];
-  if (file && file.type === "application/pdf") {
-    if (type === "main") {
-      mainFile.value = file;
-    } else {
-      additionalFile.value = file;
+  if (type === 'extra' && event.target.files.length > 0) {
+    // Handle multiple files
+    Array.from(event.target.files).forEach(file => {
+      if (validatePdf(file)) {
+        form.addUploadedFile(file);
+      }
+    });
+    
+    // Reset input
+    event.target.value = '';
+  } else if (event.target.files.length > 0) {
+    // Handle single file
+    const file = event.target.files[0];
+    
+    if (validatePdf(file)) {
+      if (type === "main") {
+        mainFile.value = file;
+      } else if (type === "additional") {
+        additionalFile.value = file;
+      }
     }
-
-    // Push to uploadedFiles for use in ips4.vue
-    if (!form.uploadedFiles.some(f => f.name === file.name)) {
-      form.uploadedFiles.push(file);
-    }
-  } else {
-    alert("Only PDF files are accepted.");
+    
+    // Reset input
+    event.target.value = '';
   }
 };
 
-
-// Add functionality for adding additional upload
-const addAdditionalUpload = () => {
-  // Implementation for adding another file input
-  console.log("Adding another file upload");
-  // This would typically add another file input to the DOM or track an array of files
+const removeExtraFile = (index) => {
+  const updatedFiles = [...extraFiles.value];
+  updatedFiles.splice(index, 1);
+  form.uploadedFiles = updatedFiles;
 };
 
+// Navigation functions
 const goBack = () => router.push('/ips1');
-const goNext = () => router.push('/ips3');
+const goNext = () => {
+  // Validate that at least the main document is uploaded
+  if (!mainFile.value) {
+    alert("Please upload a main document before proceeding.");
+    return;
+  }
+  
+  // Proceed to next page
+  router.push('/ips3');
+};
 
+// Initialize from store if needed
+onMounted(() => {
+  // If coming back to this page, files should be loaded from the store
+  console.log("Files in store:", {
+    main: form.mainDocument,
+    additional: form.additionalDocument,
+    extra: form.uploadedFiles
+  });
+});
 </script>
 
 <style>

@@ -168,6 +168,7 @@ const closeModal = () => {
   router.push('/');
 };
 
+// Modify your goNext function to properly handle file uploads
 const goNext = async () => {
   if (!confirmSubmission.value || isLoading.value) return;
   if (!currentUser.value) {
@@ -176,48 +177,45 @@ const goNext = async () => {
   }
 
   try {
-    console.log(formData.value.uploadedFiles)
-console.log(currentUser.value.uid)
-
     isLoading.value = true;
     uploadProgress.value = 0;
     const pdfUrls = [];
     
     // Handle file uploads one by one with progress tracking
     if (formData.value.uploadedFiles && formData.value.uploadedFiles.length > 0) {
-      for (let i = 0; i < formData.value.uploadedFiles.length; i++) {
-        const file = formData.value.uploadedFiles[i];
+      for (const file of formData.value.uploadedFiles) {
         // Include userId in the path to match storage rules
-        const filePath = `submissions/ipapplication/${currentUser.value.uid}/${Date.now()}_${file.name}`;
+        const sanitizedFileName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '');
+        const filePath = `submissions/ipapplication/${currentUser.value.uid}/${Date.now()}_${sanitizedFileName}`;
         const fileRef = storageRef(storage, filePath);
         
         // Use uploadBytesResumable to track progress
-        const uploadTask = uploadBytesResumable(fileRef, file);
+        const metadata = {
+          contentType: file.type || 'application/octet-stream',
+        };
+
+        const uploadTask = uploadBytesResumable(fileRef, file, metadata);
         
-        // Create a promise that resolves when the upload is complete
+        // Create a promise that wraps the upload task
         await new Promise((resolve, reject) => {
           uploadTask.on(
             'state_changed',
             (snapshot) => {
-              // Calculate progress percentage
-              const progress = Math.round(
-                (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-              );
+              const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
               uploadProgress.value = progress;
             },
             (error) => {
-              // Handle errors
-              console.error('Upload error:', error);
+              console.error('Upload error:', error.code, error.message);
               errorMessage.value = `Error uploading file: ${error.message}`;
               reject(error);
             },
             async () => {
-              // Upload completed successfully
               try {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 pdfUrls.push({ name: file.name, url: downloadURL });
                 resolve();
               } catch (error) {
+                console.error('Error getting download URL:', error.message);
                 reject(error);
               }
             }
@@ -255,8 +253,19 @@ console.log(currentUser.value.uid)
 };
 
 const viewDocument = (file) => {
-  const fileURL = URL.createObjectURL(file);
-  window.open(fileURL, '_blank');
+  // For files from the file input (not yet uploaded)
+  if (file instanceof File) {
+    const fileURL = URL.createObjectURL(file);
+    window.open(fileURL, '_blank');
+  } 
+  // For files that have already been uploaded and have a URL
+  else if (file.url) {
+    window.open(file.url, '_blank');
+  }
+  else {
+    console.error('Invalid file object:', file);
+    errorMessage.value = 'Unable to preview this file.';
+  }
 };
 </script>
 
