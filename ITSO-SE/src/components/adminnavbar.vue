@@ -16,10 +16,7 @@
               <div class="notif-dropdown">
                 <h4 class="notif-header">Notifications</h4>
                 <div class="notif-list">
-                  <div
-                    v-if="notifications.length === 0"
-                    class="notif-empty"
-                  >
+                  <div v-if="notifications.length === 0" class="notif-empty">
                     No notifications
                   </div>
                   <div
@@ -35,6 +32,10 @@
                     <div class="notif-content">
                       <div class="notif-title">
                         <strong>{{ notif.uploaderName }}</strong> uploaded <strong>{{ notif.title }}</strong>
+                      </div>
+                      <!-- Display the type (application type) -->
+                      <div class="notif-meta">
+                        <span class="meta-tag">Type: {{ notif.type }}</span>
                       </div>
                       <div class="notif-time">{{ relativeTime(notif.uploadedAt) }}</div>
                     </div>
@@ -65,13 +66,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import {
-  collection,
-  onSnapshot,
-  doc,
-  getDoc,
-  updateDoc,
-} from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
 import Menubar from 'primevue/menubar';
 import OverlayPanel from 'primevue/overlaypanel';
 
@@ -83,10 +78,7 @@ const notifications = ref([]);
 
 const items = ref([
   { label: 'Dashboard', command: () => router.push('/adminips') },
-  {
-    label: 'Admin Tools',
-    command: (event) => adminOverlay.value?.toggle?.(event.originalEvent),
-  },
+  { label: 'Admin Tools', command: (event) => adminOverlay.value?.toggle?.(event.originalEvent) },
   { label: 'Reports', command: () => router.push('/admin-reports') },
 ]);
 
@@ -108,35 +100,50 @@ const logout = async () => {
   router.push('/');
 };
 
-const fetchUploaderName = async (uploaderId) => {
-  if (!uploaderId) return 'Unknown';
-  try {
-    const userDoc = await getDoc(doc(db, 'users', uploaderId));
-    return userDoc.exists() ? userDoc.data().fullName || 'Unknown' : 'Unknown';
-  } catch (error) {
-    console.error('Error fetching uploader name:', error);
-    return 'Unknown';
-  }
-};
+// ✨ Fetching more detailed notifications (like in adminips)
+const fetchNotifications = async () => {
+  const submissionsCollection = collection(db, 'submissions');
+  const competitionsCollection = collection(db, 'competitions');
 
-const fetchNotifications = () => {
-  onSnapshot(collection(db, 'IP_Protection'), async (snapshot) => {
-    const notifs = await Promise.all(
-      snapshot.docs.map(async (doc) => {
-        const data = doc.data();
-        const uploaderName = await fetchUploaderName(data.uploaderId);
+  // Listen to submissions collection
+  onSnapshot(submissionsCollection, async (submissionSnapshot) => {
+    const submissionNotifs = await Promise.all(
+      submissionSnapshot.docs.map(async (docSnap) => {
+        const data = docSnap.data();
         return {
-          id: doc.id,
-          title: data.fileName || 'Untitled Upload',
+          id: docSnap.id,
+          title: data.title || 'Untitled Submission', // Use title from submission
           uploadedAt: data.uploadedAt,
-          uploaderName,
+          uploaderName: data.fullName || 'Unknown', // Directly fetch fullName from submission
           read: data.read || false,
+          type: 'IP Protection', // Automatically set type to 'IP Protection' for submissions
         };
       })
     );
-    notifications.value = notifs.sort(
-      (a, b) => b.uploadedAt?.seconds - a.uploadedAt?.seconds
-    );
+
+    // Listen to competitions collection
+    onSnapshot(competitionsCollection, async (competitionSnapshot) => {
+      const competitionNotifs = await Promise.all(
+        competitionSnapshot.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            title: data.title || 'Untitled Competition', // title for competitions
+            uploadedAt: data.createdAt, // Assuming competitions use createdAt
+            uploaderName: data.fullName || 'Unknown', // Directly fetch fullName from competition
+            read: data.read || false,
+            type: 'Competition', // Set type as 'Competition' for competitions
+          };
+        })
+      );
+
+      // Combine both submission and competition notifications
+      const allNotifs = [...submissionNotifs, ...competitionNotifs];
+      notifications.value = allNotifs.sort((a, b) => {
+        if (!a.uploadedAt || !b.uploadedAt) return 0;
+        return b.uploadedAt.seconds - a.uploadedAt.seconds; // Sort by uploadedAt
+      });
+    });
   });
 };
 
@@ -170,6 +177,7 @@ onMounted(() => {
   fetchNotifications();
 });
 </script>
+
 
 <style scoped>
 .menubar-container {
@@ -262,11 +270,13 @@ onMounted(() => {
   border-radius: 6px;
   background-color: #f9f9f9;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .notif-item.unread {
   background-color: #e6f0ff;
+  font-weight: bold;
+  transform: scale(1.02);
 }
 
 .notif-item:hover {
@@ -293,8 +303,22 @@ onMounted(() => {
   color: #333;
 }
 
+.notif-meta {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.meta-tag {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
 .notif-time {
   font-size: 12px;
   color: #888;
+  margin-top: 4px;
 }
 </style>

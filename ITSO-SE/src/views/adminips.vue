@@ -2,19 +2,14 @@
   <div class="min-h-screen bg-pink-50 p-6">
     <h1 class="text-3xl font-bold mb-6 text-center text-pink-700">Submitted Applications</h1>
 
-    <!-- Updated Table -->
     <div class="overflow-x-auto">
       <table class="w-full table-auto border-collapse bg-white shadow rounded-xl overflow-hidden">
         <thead class="bg-pink-100 text-pink-800">
           <tr>
-            <!-- Type of Application -->
             <th class="p-3 text-left">
               Type of Application
               <div class="mt-2">
-                <select
-                  v-model="filters.typeOfApplication"
-                  class="w-full p-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
-                >
+                <select v-model="filters.typeOfApplication" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500">
                   <option value="">All</option>
                   <option value="IP Protection Application">IP Protection Application</option>
                   <option value="Request for Joining Competition">Request for Joining Competition</option>
@@ -22,34 +17,20 @@
               </div>
             </th>
 
-            <!-- Title of Research -->
             <th class="p-3 text-left">
               Title of Research
               <div class="flex items-center space-x-2 mt-2">
-                <input
-                  v-model="filters.fileName"
-                  type="text"
-                  placeholder="Search Title"
-                  class="w-full p-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
-                <button
-                  @click="sortBy('fileName')"
-                  class="text-pink-500 hover:text-pink-700"
-                  title="Sort by Title"
-                >
+                <input v-model="filters.fileName" type="text" placeholder="Search Title" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500" />
+                <button @click="sortBy('fileName')" class="text-pink-500 hover:text-pink-700">
                   <i class="fas fa-sort"></i>
                 </button>
               </div>
             </th>
 
-            <!-- Department -->
             <th class="p-3 text-left">
               Department
               <div class="mt-2">
-                <select
-                  v-model="filters.department"
-                  class="w-full p-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
-                >
+                <select v-model="filters.department" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500">
                   <option value="">All</option>
                   <option value="College of Computer Studies">College of Computer Studies</option>
                   <option value="College of Pharmacy">College of Pharmacy</option>
@@ -58,33 +39,20 @@
               </div>
             </th>
 
-            <!-- Date -->
             <th class="p-3 text-left">
               Date
               <div class="flex items-center space-x-2 mt-2">
-                <input
-                  v-model="filters.date"
-                  type="date"
-                  class="w-full p-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
-                <button
-                  @click="sortBy('uploadedAt')"
-                  class="text-pink-500 hover:text-pink-700"
-                  title="Sort by Date"
-                >
+                <input v-model="filters.date" type="date" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500" />
+                <button @click="sortBy('uploadedAt')" class="text-pink-500 hover:text-pink-700">
                   <i class="fas fa-sort"></i>
                 </button>
               </div>
             </th>
 
-            <!-- Status -->
             <th class="p-3 text-left">
               Status
               <div class="mt-2">
-                <select
-                  v-model="filters.status"
-                  class="w-full p-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
-                >
+                <select v-model="filters.status" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500">
                   <option value="">All</option>
                   <option value="Approved">Approved</option>
                   <option value="Pending">Pending</option>
@@ -93,35 +61,34 @@
               </div>
             </th>
 
-            <!-- Actions -->
             <th class="p-3 text-center">Actions</th>
           </tr>
         </thead>
+
         <tbody>
-          <tr
-            v-for="(project, index) in paginatedProjects"
-            :key="project.id"
-            class="border-b hover:bg-pink-50"
-          >
+          <tr v-for="(project, index) in paginatedProjects" :key="project.id" class="border-b hover:bg-pink-50">
             <td class="p-3 capitalize">{{ project.typeOfApplication || 'N/A' }}</td>
-            <td class="p-3">{{ project.fileName }}</td>
+            <td class="p-3">{{ project.fileName || 'N/A' }}</td>
             <td class="p-3">{{ project.department || 'N/A' }}</td>
             <td class="p-3">{{ formatDate(project.uploadedAt) }}</td>
             <td class="p-3">
               <span :class="getStatusClass(project.status)" class="px-3 py-1 rounded-full text-xs font-medium">
-                {{ project.status }}
+                {{ project.status || 'N/A' }}
               </span>
             </td>
-            <td class="p-3 text-center">
-                <router-link
-                :to="`/adminviewips/${project.id}`"
-                class="inline-block bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded transition"
-              >
+            <td class="p-3 text-center space-y-2">
+              <router-link :to="`/adminviewips/${project.id}`" class="inline-block bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded transition">
                 View
               </router-link>
-              
+
+              <div v-if="project.fileUrl">
+                <a :href="project.fileUrl" target="_blank" class="inline-block bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition">
+                  Download
+                </a>
+              </div>
             </td>
           </tr>
+
           <tr v-if="paginatedProjects.length === 0">
             <td colspan="6" class="p-4 text-center text-gray-500">No results found.</td>
           </tr>
@@ -129,26 +96,15 @@
       </table>
     </div>
 
-    <!-- Centered Pagination Controls -->
-    <div class="pagination">
-        <div class="pagination-controls flex items-center gap-4">
-          <button
-            @click="prevPage"
-            :disabled="currentPage === 1"
-            class="px-3 py-1 rounded"
-          >
-            Previous
-          </button>
-          <span class="font-medium text-pink-700">Page {{ currentPage }} of {{ totalPages }}</span>
-          <button
-            @click="nextPage"
-            :disabled="currentPage === totalPages"
-            class="px-3 py-1 rounded"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+    <div class="pagination flex items-center justify-center gap-4 mt-6">
+      <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1 rounded bg-pink-300 hover:bg-pink-400">
+        Previous
+      </button>
+      <span class="font-medium text-pink-700">Page {{ currentPage }} of {{ totalPages }}</span>
+      <button @click="nextPage" :disabled="currentPage === totalPages" class="px-3 py-1 rounded bg-pink-300 hover:bg-pink-400">
+        Next
+      </button>
+    </div>
   </div>
 </template>
 
@@ -156,6 +112,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/firebase';
+import { getStorage, ref as storageRef, getDownloadURL, listAll } from 'firebase/storage';
 
 const projects = ref([]);
 const filters = ref({
@@ -168,16 +125,97 @@ const filters = ref({
 
 const currentPage = ref(1);
 const rowsPerPage = 5;
+const sortKey = ref('');
+const sortOrder = ref('asc');
 
+const storage = getStorage();
+
+// Fetch projects from Firestore
 const fetchProjects = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'IP_Protection'));
-    projects.value = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const projectList = [];
+
+    // From IP_Protection
+    const ipSnapshot = await getDocs(collection(db, 'IP_Protection'));
+    ipSnapshot.forEach(doc => {
+      const data = doc.data();
+      projectList.push({
+        id: doc.id,
+        source: 'IP_Protection',
+        typeOfApplication: data.typeOfApplication || '',
+        fileName: data.fileName || '',
+        department: data.department || '',
+        uploadedAt: data.uploadedAt || null,
+        status: data.status || '',
+      });
+    });
+
+    // From submissions (now using title!)
+    const submissionSnapshot = await getDocs(collection(db, 'submissions'));
+    submissionSnapshot.forEach(doc => {
+      const data = doc.data();
+      projectList.push({
+        id: doc.id,
+        source: 'submissions',
+        typeOfApplication: data.applicationType || '',
+        fileName: data.title || '', // <-- CHANGED: using title
+        department: data.department || '',
+        uploadedAt: data.createdAt || null,
+        status: data.status || '',
+      });
+    });
+
+    // From competitions
+    const competitionSnapshot = await getDocs(collection(db, 'competitions'));
+    competitionSnapshot.forEach(doc => {
+      const data = doc.data();
+      projectList.push({
+        id: doc.id,
+        source: 'competitions',
+        typeOfApplication: data.applicationType || '',
+        fileName: data.title || '',
+        department: data.department || '',
+        uploadedAt: data.submittedAt || null,
+        status: data.status || '',
+      });
+    });
+
+    projects.value = projectList;
   } catch (error) {
     console.error('Error fetching projects:', error);
+  }
+};
+
+// Fetch files from Storage
+const fetchStorageFiles = async () => {
+  try {
+    const allFiles = [];
+
+    const submissionsFolder = storageRef(storage, 'submissions/');
+    const submissionsList = await listAll(submissionsFolder);
+
+    for (const item of submissionsList.items) {
+      const url = await getDownloadURL(item);
+      allFiles.push({ name: item.name, url, folder: 'submissions' });
+    }
+
+    const competitionFolder = storageRef(storage, 'submission_competition/');
+    const competitionList = await listAll(competitionFolder);
+
+    for (const item of competitionList.items) {
+      const url = await getDownloadURL(item);
+      allFiles.push({ name: item.name, url, folder: 'submission_competition' });
+    }
+
+    // Match file URLs to projects
+    for (const project of projects.value) {
+      const matchedFile = allFiles.find(file => file.name.includes(project.id));
+      if (matchedFile) {
+        project.fileUrl = matchedFile.url;
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching storage files:', error);
   }
 };
 
@@ -187,7 +225,7 @@ const filteredProjects = computed(() => {
       const matchesFileName = !filters.value.fileName || project.fileName?.toLowerCase().includes(filters.value.fileName.toLowerCase());
       const matchesType = !filters.value.typeOfApplication || project.typeOfApplication === filters.value.typeOfApplication;
       const matchesDepartment = !filters.value.department || project.department === filters.value.department;
-      const matchesDate = !filters.value.date || new Date(project.uploadedAt.seconds * 1000).toISOString().split('T')[0] === filters.value.date;
+      const matchesDate = !filters.value.date || (project.uploadedAt && new Date(project.uploadedAt.seconds * 1000).toISOString().split('T')[0] === filters.value.date);
       const matchesStatus = !filters.value.status || project.status === filters.value.status;
       return matchesFileName && matchesType && matchesDepartment && matchesDate && matchesStatus;
     })
@@ -213,9 +251,6 @@ const paginatedProjects = computed(() => {
   const end = start + rowsPerPage;
   return filteredProjects.value.slice(start, end);
 });
-
-const sortKey = ref('');
-const sortOrder = ref('asc');
 
 const sortBy = key => {
   if (sortKey.value === key) {
@@ -247,10 +282,13 @@ const nextPage = () => {
   if (currentPage.value < totalPages.value) currentPage.value++;
 };
 
-onMounted(() => {
-  fetchProjects();
+onMounted(async () => {
+  await fetchProjects();
+  await fetchStorageFiles();
 });
 </script>
+
+
 
 <style scoped>
 /* Prevent table cell wrap */

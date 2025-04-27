@@ -21,6 +21,10 @@
             <h2 class="section-title">Applicant Information</h2>
             <div class="review-grid">
               <div class="review-item">
+                <div class="review-label">Title of Research</div>
+                <div class="review-value">{{ formData.title || 'Not provided' }}</div>
+              </div>
+              <div class="review-item">
                 <div class="review-label">Full Name</div>
                 <div class="review-value">{{ formData.fullName || 'Not provided' }}</div>
               </div>
@@ -82,7 +86,7 @@
     <!-- Loading Spinner -->
     <div v-if="isLoading" class="loading-spinner-overlay">
       <div class="spinner"></div>
-      <div class="loading-text">Uploading Files... {{uploadProgress}}%</div>
+      <div class="loading-text">Uploading Files... {{ uploadProgress }}%</div>
     </div>
 
     <!-- Error Alert -->
@@ -114,7 +118,6 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFormStore } from '@/stores/formStoreips';
-
 import { db, storage, auth } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -139,11 +142,13 @@ const steps = ref([
 const currentStep = ref(4);
 
 const formData = ref({
+  title: formStore.title, // 🆕 Added
   fullName: formStore.fullName,
   position: formStore.position,
   email: formStore.email,
   contactNumber: formStore.contactNumber,
   department: formStore.department,
+  applicationType: formStore.applicationType, 
   uploadedFiles: formStore.uploadedFiles || []
 });
 
@@ -153,7 +158,6 @@ onMounted(() => {
     if (user) {
       currentUser.value = user;
     } else {
-      // Redirect to login page if not authenticated
       router.push('/login');
     }
   });
@@ -168,7 +172,6 @@ const closeModal = () => {
   router.push('/');
 };
 
-// Modify your goNext function to properly handle file uploads
 const goNext = async () => {
   if (!confirmSubmission.value || isLoading.value) return;
   if (!currentUser.value) {
@@ -180,23 +183,19 @@ const goNext = async () => {
     isLoading.value = true;
     uploadProgress.value = 0;
     const pdfUrls = [];
-    
-    // Handle file uploads one by one with progress tracking
+
     if (formData.value.uploadedFiles && formData.value.uploadedFiles.length > 0) {
       for (const file of formData.value.uploadedFiles) {
-        // Include userId in the path to match storage rules
         const sanitizedFileName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '');
         const filePath = `submissions/ipapplication/${currentUser.value.uid}/${Date.now()}_${sanitizedFileName}`;
         const fileRef = storageRef(storage, filePath);
-        
-        // Use uploadBytesResumable to track progress
+
         const metadata = {
           contentType: file.type || 'application/octet-stream',
         };
 
         const uploadTask = uploadBytesResumable(fileRef, file, metadata);
-        
-        // Create a promise that wraps the upload task
+
         await new Promise((resolve, reject) => {
           uploadTask.on(
             'state_changed',
@@ -224,25 +223,23 @@ const goNext = async () => {
       }
     }
 
-    // Create submission data
     const submissionData = {
       userId: currentUser.value.uid,
+      title: formData.value.title, // 🆕 Saving title too
       fullName: formData.value.fullName,
       position: formData.value.position,
       email: formData.value.email,
       contactNumber: formData.value.contactNumber,
       department: formData.value.department,
+      applicationType: formData.value.applicationType || 'IP Protection',
       uploadedDocuments: pdfUrls,
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
+      status: 'Pending'
     };
 
-    // Add data to Firestore
     await addDoc(collection(db, 'submissions'), submissionData);
 
-    // Reset form store
     formStore.resetForm();
-    
-    // Show success modal
     showSuccessModal.value = true;
   } catch (error) {
     console.error('Error during submission:', error);
@@ -253,21 +250,18 @@ const goNext = async () => {
 };
 
 const viewDocument = (file) => {
-  // For files from the file input (not yet uploaded)
   if (file instanceof File) {
     const fileURL = URL.createObjectURL(file);
     window.open(fileURL, '_blank');
-  } 
-  // For files that have already been uploaded and have a URL
-  else if (file.url) {
+  } else if (file.url) {
     window.open(file.url, '_blank');
-  }
-  else {
+  } else {
     console.error('Invalid file object:', file);
     errorMessage.value = 'Unable to preview this file.';
   }
 };
 </script>
+
 
 <style scoped>
 /* Add these styles for error message and progress display */

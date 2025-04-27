@@ -9,11 +9,12 @@ export const useFormStore = defineStore('form', () => {
   // Basic form data from step 1
   const basicInfo = ref({
     title: '',
-    category: 'research',
+    category: '',
     fullName: '',
     email: '',
     contactNumber: '',
     department: '',
+    applicationType: 'Competition', // Default value
   });
 
   // Document references from step 2
@@ -34,9 +35,12 @@ export const useFormStore = defineStore('form', () => {
 
   // Loading state
   const isLoading = ref(false);
-  
+
   // Current user state
   const currentUser = ref(null);
+
+  // Status field (NEW)
+  const status = ref('pending'); // <-- Default to "pending"
 
   // Update current user
   const updateCurrentUser = () => {
@@ -52,7 +56,6 @@ export const useFormStore = defineStore('form', () => {
   // Save step 1 data
   const saveBasicInfo = (data) => {
     basicInfo.value = { ...data };
-    // Save to localStorage as backup
     localStorage.setItem('submissionBasicInfo', JSON.stringify(data));
     console.log('Basic info saved:', basicInfo.value);
   };
@@ -66,14 +69,13 @@ export const useFormStore = defineStore('form', () => {
       request: files.request?.name || 'None',
       additional: files.additional?.name || 'None'
     });
-    // We don't save files to localStorage
   };
 
   // Upload files to Firebase Storage
   const uploadFiles = async () => {
     isLoading.value = true;
     const user = updateCurrentUser();
-    
+
     if (!user) {
       console.error('Upload failed: User not authenticated');
       throw new Error('User not authenticated');
@@ -83,17 +85,15 @@ export const useFormStore = defineStore('form', () => {
       console.log('Starting file uploads for user:', user.uid);
       const uploads = [];
       const submissionId = `submission_${Date.now()}`;
-      
+
       for (const type in documents.value) {
         if (documents.value[type]) {
           const file = documents.value[type];
-          // Use the path structure that matches Firebase rules: submissions/competition/{userId}/{submissionId}/{fileName}
           const filePath = `submissions/competition/${user.uid}/${submissionId}/${type}${getFileExtension(file.name)}`;
-          
+
           console.log(`Preparing to upload ${type} file:`, file.name, 'to path:', filePath);
           const fileRef = storageRef(storage, filePath);
-          
-          // Create promise for upload
+
           const uploadTask = uploadBytes(fileRef, file)
             .then(() => {
               console.log(`${type} file uploaded successfully`);
@@ -104,16 +104,15 @@ export const useFormStore = defineStore('form', () => {
               fileURLs.value[type] = url;
               return { type, url };
             });
-          
+
           uploads.push(uploadTask);
         }
       }
-      
-      // Wait for all uploads to complete
+
       console.log('Waiting for all uploads to complete...');
       const results = await Promise.all(uploads);
       console.log('All uploads completed:', results);
-      
+
       return { fileURLs: fileURLs.value, submissionId };
     } catch (error) {
       console.error('Error uploading files:', error);
@@ -132,7 +131,7 @@ export const useFormStore = defineStore('form', () => {
   const submitForm = async () => {
     isLoading.value = true;
     const user = updateCurrentUser();
-    
+
     if (!user) {
       console.error('Form submission failed: User not authenticated');
       throw new Error('User not authenticated');
@@ -140,45 +139,42 @@ export const useFormStore = defineStore('form', () => {
 
     try {
       console.log('Starting form submission process for user:', user.uid);
-      
-      // First upload all files
+
+      // Upload all files
       console.log('Uploading files...');
       const { fileURLs: uploadedFiles, submissionId } = await uploadFiles();
       console.log('Files uploaded successfully:', uploadedFiles);
       console.log('Using submission ID:', submissionId);
 
-      // Create reference to user's competitions collection
-      const userCompetitionRef = collection(db, "users", user.uid, "competitions");
-      console.log('User competition collection path:', `users/${user.uid}/competitions/${submissionId}`);
-      
       const submissionData = {
         ...basicInfo.value,
         fileURLs: uploadedFiles,
-        status: 'submitted',
+        status: status.value, // <-- Use the "pending" status by default
         submissionId,
         submittedAt: serverTimestamp(),
       };
-      
-      // Add the submission to the user's competitions collection
-      console.log('Saving submission data to user collection:', submissionData);
+
+      // 1. Save to user's competitions collection
+      const userCompetitionRef = collection(db, "users", user.uid, "competitions");
+      console.log('Saving to users collection:', `users/${user.uid}/competitions/${submissionId}`);
       await setDoc(doc(userCompetitionRef, submissionId), submissionData);
       console.log('User-specific submission document created');
-      
-      // Also add to the main competitions collection with user reference
+
+      // 2. Save to global competitions collection
       const globalSubmissionData = {
-        ...basicInfo.value,
-        fileURLs: uploadedFiles,
-        status: 'submitted',
+        ...submissionData,
         userId: user.uid,
         userEmail: user.email,
-        submissionId,
-        submittedAt: serverTimestamp(),
       };
-      
-      console.log('Saving submission data to global competitions collection:', globalSubmissionData);
+      console.log('Saving to global competitions collection');
       await setDoc(doc(db, "competitions", submissionId), globalSubmissionData);
       console.log('Global submission document created');
-      
+
+      // 3. Save to submission_competition collection
+      console.log('Saving to submission_competition collection');
+      await setDoc(doc(db, "submission_competition", submissionId), globalSubmissionData);
+      console.log('submission_competition document created');
+
       console.log('Submission completed successfully with ID:', submissionId);
       return submissionId;
     } catch (error) {
@@ -191,7 +187,7 @@ export const useFormStore = defineStore('form', () => {
 
   // Load saved basic info from localStorage
   const loadSavedData = () => {
-    updateCurrentUser(); // Update user reference when loading data
+    updateCurrentUser();
     const savedBasicInfo = localStorage.getItem('submissionBasicInfo');
     if (savedBasicInfo) {
       basicInfo.value = JSON.parse(savedBasicInfo);
@@ -205,28 +201,30 @@ export const useFormStore = defineStore('form', () => {
   const resetForm = () => {
     basicInfo.value = {
       title: '',
-      category: 'research',
+      category: '',
       fullName: '',
       email: '',
       contactNumber: '',
       department: '',
+      applicationType: 'Competition',
     };
-    
+
     documents.value = {
       guidelines: null,
       documents: null,
       request: null,
       additional: null
     };
-    
+
     fileURLs.value = {
       guidelines: '',
       documents: '',
       request: '',
       additional: ''
     };
-    
-    // Clear localStorage
+
+    status.value = 'pending'; // <-- Reset status back to pending
+
     localStorage.removeItem('submissionBasicInfo');
     console.log('Form data reset successfully');
   };
@@ -237,12 +235,13 @@ export const useFormStore = defineStore('form', () => {
     fileURLs,
     isLoading,
     currentUser,
+    status,
     updateCurrentUser,
     saveBasicInfo,
     saveDocuments,
     uploadFiles,
     submitForm,
     loadSavedData,
-    resetForm
+    resetForm,
   };
 });

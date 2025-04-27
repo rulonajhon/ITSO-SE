@@ -32,12 +32,17 @@
             <h2 class="section-title">1. Applicant Information</h2>
 
             <div class="form-group">
+              <label>Title of Research</label> <!-- ✅ NEW FIELD -->
+              <input type="text" v-model="form.title" required />
+            </div>
+
+            <div class="form-group">
               <label>Full Name</label>
               <input type="text" v-model="form.fullName" required />
             </div>
 
             <div class="form-group">
-              <label>Position/Title</label>
+              <label>Position</label> <!-- ✅ CHANGED -->
               <input type="text" v-model="form.position" required />
             </div>
 
@@ -76,7 +81,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Fixed buttons -->
           <div class="form-buttons">
             <button type="button" class="btn btn-back" @click="goBack">Back</button>
@@ -104,10 +109,10 @@ const goBack = () => {
 };
 
 const saveDraft = () => {
-  // Save draft functionality here
   console.log('Saving draft...');
 };
 </script>
+
 
 <style>
 /* Reset and Global Styles */

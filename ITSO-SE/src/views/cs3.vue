@@ -24,17 +24,14 @@
 
         <!-- Review Section -->
         <div class="review-container">
+
           <!-- Section 1: Basic Information -->
           <div class="review-section">
             <h2 class="section-title">1. Basic Information</h2>
             <div class="review-grid">
-              <div class="review-item">
-                <div class="review-label">Title</div>
-                <div class="review-value">{{ formStore.basicInfo.title }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Category</div>
-                <div class="review-value">{{ getCategoryLabel(formStore.basicInfo.category) }}</div>
+              <div class="review-item" v-for="(value, label) in basicInfoFields" :key="label">
+                <div class="review-label">{{ label }}</div>
+                <div class="review-value">{{ value }}</div>
               </div>
             </div>
           </div>
@@ -43,21 +40,9 @@
           <div class="review-section">
             <h2 class="section-title">2. Applicant Information</h2>
             <div class="review-grid">
-              <div class="review-item">
-                <div class="review-label">Full Name</div>
-                <div class="review-value">{{ formStore.basicInfo.fullName }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Email</div>
-                <div class="review-value">{{ formStore.basicInfo.email }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Contact Number</div>
-                <div class="review-value">{{ formStore.basicInfo.contactNumber }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Department</div>
-                <div class="review-value">{{ getDepartmentLabel(formStore.basicInfo.department) }}</div>
+              <div class="review-item" v-for="(value, label) in applicantInfoFields" :key="label">
+                <div class="review-label">{{ label }}</div>
+                <div class="review-value">{{ value }}</div>
               </div>
             </div>
           </div>
@@ -74,7 +59,9 @@
                 <div class="document-details">
                   <div class="document-name">{{ getFileLabel(key) }}</div>
                   <div v-if="file" class="document-filename">{{ file.name }}</div>
-                  <div v-else class="document-missing-text">{{ isRequired(key) ? 'Required document not uploaded' : 'Optional document not uploaded' }}</div>
+                  <div v-else class="document-missing-text">
+                    {{ isRequired(key) ? 'Required document not uploaded' : 'Optional document not uploaded' }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -103,9 +90,11 @@
               :disabled="!confirmSubmission || formStore.isLoading || !isReadyToSubmit" 
               @click="submitForm"
             >
-              {{ formStore.isLoading ? 'Submitting...' : 'Submit' }}
+              <span v-if="formStore.isLoading">Submitting...</span>
+              <span v-else>Submit</span>
             </button>
           </div>
+
         </div>
       </div>
     </div>
@@ -125,59 +114,67 @@ const confirmSubmission = ref(false);
 const user = ref(null);
 const submissionStatus = ref(null);
 
-// Load saved data when component mounts
+// Load saved form data on mount
 onMounted(() => {
   formStore.loadSavedData();
-  console.log('CS3: Component mounted, saved data loaded');
 });
 
-// Track authenticated user
+// Authentication guard
 onAuthStateChanged(auth, (currentUser) => {
   if (currentUser) {
     user.value = currentUser;
-    console.log('CS3: User authenticated', { 
-      uid: currentUser.uid, 
-      email: currentUser.email 
-    });
-    formStore.updateCurrentUser(); // Update user in store
+    formStore.updateCurrentUser();
   } else {
-    console.log('CS3: No user authenticated, redirecting to login');
-    // Redirect to login if not authenticated
     router.push('/login');
   }
 });
 
-// Helper functions for displaying labels
+// Computed: fields for Basic Info
+const basicInfoFields = computed(() => ({
+  'Title': formStore.basicInfo.title,
+  'Category': getCategoryLabel(formStore.basicInfo.category)
+}));
+
+// Computed: fields for Applicant Info
+const applicantInfoFields = computed(() => ({
+  'Full Name': formStore.basicInfo.fullName,
+  'Email': formStore.basicInfo.email,
+  'Contact Number': formStore.basicInfo.contactNumber,
+  'Department': getDepartmentLabel(formStore.basicInfo.department)
+}));
+
+// Helper: translate category
 const getCategoryLabel = (category) => {
   const categories = {
-    'research': 'Research',
-    'testing': 'Testing',
-    'software': 'All Software',
-    'others': 'Others'
+    research: 'Research',
+    testing: 'Testing',
+    software: 'All Software',
+    others: 'Others'
   };
-  return categories[category] || category;
+  return categories[category] || 'Unknown Category';
 };
 
+// Helper: translate department
 const getDepartmentLabel = (dept) => {
   const departments = {
-    'elementary': 'Elementary',
-    'juniorHighschool': 'Junior Highschool',
-    'seniorHighschool': 'Senior Highschool',
-    'engineering': 'College of Accounting and Business Education',
-    'science': 'College of Arts and Humanities',
-    'arts': 'College of Computer Studies',
-    'business': 'College of Engineering and Architecture',
-    'human_env': 'College of Human Environment Science and Food Studies',
-    'medical': 'College of Medical and Biological Sciences',
-    'music': 'College of Music',
-    'nursing': 'College of Nursing',
-    'pharmacy': 'College of Pharmacy and Chemistry',
-    'education': 'College of Teacher Education'
+    elementary: 'Elementary',
+    juniorHighschool: 'Junior Highschool',
+    seniorHighschool: 'Senior Highschool',
+    engineering: 'College of Engineering and Architecture',
+    science: 'College of Arts and Humanities',
+    arts: 'College of Computer Studies',
+    business: 'College of Accounting and Business Education',
+    human_env: 'College of Human Environment Science and Food Studies',
+    medical: 'College of Medical and Biological Sciences',
+    music: 'College of Music',
+    nursing: 'College of Nursing',
+    pharmacy: 'College of Pharmacy and Chemistry',
+    education: 'College of Teacher Education'
   };
-  return departments[dept] || dept;
+  return departments[dept] || 'Unknown Department';
 };
 
-// Get document label
+// Helper: get document label
 const getFileLabel = (key) => {
   const labels = {
     guidelines: 'Event/Publication Guidelines',
@@ -188,24 +185,22 @@ const getFileLabel = (key) => {
   return labels[key] || 'Unknown Document';
 };
 
-// Check if a document is required
-const isRequired = (key) => {
-  return key !== 'additional';
+// Helper: check if document is required
+const isRequired = (key) => key !== 'additional';
+
+// Computed: ready to submit (required documents uploaded)
+const isReadyToSubmit = computed(() => (
+  formStore.documents.guidelines &&
+  formStore.documents.documents &&
+  formStore.documents.request
+));
+
+// Navigation: go back
+const goBack = () => {
+  router.push('/cs2');
 };
 
-// Check if all required documents are present
-const isReadyToSubmit = computed(() => {
-  return (
-    formStore.documents.guidelines &&
-    formStore.documents.documents &&
-    formStore.documents.request
-  );
-});
-
-// Go back to previous step
-const goBack = () => router.push('/cs2');
-
-// Submit Form
+// Form submission
 const submitForm = async () => {
   if (!user.value) {
     submissionStatus.value = {
@@ -214,15 +209,13 @@ const submitForm = async () => {
     };
     return;
   }
-
   if (!isReadyToSubmit.value) {
     submissionStatus.value = {
       type: 'error',
-      message: 'Please upload all required documents before submitting.'
+      message: 'Please upload all required documents.'
     };
     return;
   }
-
   if (!confirmSubmission.value) {
     submissionStatus.value = {
       type: 'error',
@@ -232,38 +225,24 @@ const submitForm = async () => {
   }
 
   try {
-    submissionStatus.value = {
-      type: 'pending',
-      message: 'Submitting your competition entry...'
-    };
-    
-    // This will handle both file uploads and form submission
+    submissionStatus.value = { type: 'pending', message: 'Submitting your entry...' };
     const submissionId = await formStore.submitForm();
-    
-    submissionStatus.value = {
-      type: 'success',
-      message: 'Submission successful!'
-    };
-    
-    // Reset form data after successful submission
+    submissionStatus.value = { type: 'success', message: 'Submission successful!' };
+
     formStore.resetForm();
-    
-    // Redirect to confirmation page with submission ID
+
     setTimeout(() => {
-      router.push({
-        path: '/submission-confirmation',
-        query: { id: submissionId }
-      });
+      router.push({ path: '/submission-confirmation', query: { id: submissionId } });
     }, 1500);
+
   } catch (error) {
     console.error('Error during submission:', error);
-    submissionStatus.value = {
-      type: 'error',
-      message: `Submission failed: ${error.message}`
-    };
+    submissionStatus.value = { type: 'error', message: `Submission failed: ${error.message}` };
   }
 };
 </script>
+
+
 
 <style scoped>
 .submission-status {
