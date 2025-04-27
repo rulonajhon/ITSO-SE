@@ -6,61 +6,11 @@
       <table class="w-full table-auto border-collapse bg-white shadow rounded-xl overflow-hidden">
         <thead class="bg-pink-100 text-pink-800">
           <tr>
-            <th class="p-3 text-left">
-              Type of Application
-              <div class="mt-2">
-                <select v-model="filters.typeOfApplication" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500">
-                  <option value="">All</option>
-                  <option value="IP Protection Application">IP Protection Application</option>
-                  <option value="Request for Joining Competition">Request for Joining Competition</option>
-                </select>
-              </div>
-            </th>
-
-            <th class="p-3 text-left">
-              Title of Research
-              <div class="flex items-center space-x-2 mt-2">
-                <input v-model="filters.fileName" type="text" placeholder="Search Title" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500" />
-                <button @click="sortBy('fileName')" class="text-pink-500 hover:text-pink-700">
-                  <i class="fas fa-sort"></i>
-                </button>
-              </div>
-            </th>
-
-            <th class="p-3 text-left">
-              Department
-              <div class="mt-2">
-                <select v-model="filters.department" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500">
-                  <option value="">All</option>
-                  <option value="College of Computer Studies">College of Computer Studies</option>
-                  <option value="College of Pharmacy">College of Pharmacy</option>
-                  <option value="College of Accounting and Business Education">College of Accounting and Business Education</option>
-                </select>
-              </div>
-            </th>
-
-            <th class="p-3 text-left">
-              Date
-              <div class="flex items-center space-x-2 mt-2">
-                <input v-model="filters.date" type="date" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500" />
-                <button @click="sortBy('uploadedAt')" class="text-pink-500 hover:text-pink-700">
-                  <i class="fas fa-sort"></i>
-                </button>
-              </div>
-            </th>
-
-            <th class="p-3 text-left">
-              Status
-              <div class="mt-2">
-                <select v-model="filters.status" class="w-full p-1 border rounded focus:ring-2 focus:ring-pink-500">
-                  <option value="">All</option>
-                  <option value="Approved">Approved</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
-              </div>
-            </th>
-
+            <th class="p-3 text-left">Type of Application</th>
+            <th class="p-3 text-left">Title of Research</th>
+            <th class="p-3 text-left">Department</th>
+            <th class="p-3 text-left">Date</th>
+            <th class="p-3 text-left">Status</th>
             <th class="p-3 text-center">Actions</th>
           </tr>
         </thead>
@@ -71,11 +21,22 @@
             <td class="p-3">{{ project.fileName || 'N/A' }}</td>
             <td class="p-3">{{ project.department || 'N/A' }}</td>
             <td class="p-3">{{ formatDate(project.uploadedAt) }}</td>
+
             <td class="p-3">
-              <span :class="getStatusClass(project.status)" class="px-3 py-1 rounded-full text-xs font-medium">
-                {{ project.status || 'N/A' }}
-              </span>
+              <!-- Status dropdown with colored backgrounds -->
+              <select 
+                v-model="project.status" 
+                @change="updateStatus(project)" 
+                class="p-1 border rounded focus:ring-2 focus:ring-pink-500 text-white font-medium"
+                :class="getStatusBackgroundClass(project.status)"
+              >
+                <option value="Approved" class="bg-green-500 text-white">Approved</option>
+                <option value="Pending" class="bg-yellow-500 text-white">Pending</option>
+                <option value="Rejected" class="bg-red-500 text-white">Rejected</option>
+                <option value="Revision" class="bg-orange-500 text-white">Revision</option>
+              </select>
             </td>
+
             <td class="p-3 text-center space-y-2">
               <router-link :to="`/adminviewips/${project.id}`" class="inline-block bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded transition">
                 View
@@ -110,7 +71,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { getStorage, ref as storageRef, getDownloadURL, listAll } from 'firebase/storage';
 
@@ -134,21 +95,6 @@ const storage = getStorage();
 const fetchProjects = async () => {
   try {
     const projectList = [];
-
-    // From IP_Protection
-    const ipSnapshot = await getDocs(collection(db, 'IP_Protection'));
-    ipSnapshot.forEach(doc => {
-      const data = doc.data();
-      projectList.push({
-        id: doc.id,
-        source: 'IP_Protection',
-        typeOfApplication: data.typeOfApplication || '',
-        fileName: data.fileName || '',
-        department: data.department || '',
-        uploadedAt: data.uploadedAt || null,
-        status: data.status || '',
-      });
-    });
 
     // From submissions (now using title!)
     const submissionSnapshot = await getDocs(collection(db, 'submissions'));
@@ -219,6 +165,50 @@ const fetchStorageFiles = async () => {
   }
 };
 
+// Method to update status in Firestore
+const updateStatus = async (project) => {
+  try {
+    let projectRef;
+
+    // Determine which collection the project belongs to and update the status
+    if (project.source === 'IP_Protection') {
+      projectRef = doc(db, 'IP_Protection', project.id);
+    } else if (project.source === 'submissions') {
+      projectRef = doc(db, 'submissions', project.id);
+    } else if (project.source === 'competitions') {
+      projectRef = doc(db, 'competitions', project.id);
+    }
+
+    // Update the status in Firestore
+    await updateDoc(projectRef, {
+      status: project.status
+    });
+
+    console.log('Status updated successfully');
+  } catch (error) {
+    console.error('Error updating status:', error);
+  }
+};
+
+// Get status background color class
+const getStatusBackgroundClass = status => {
+  if (status === 'Approved') return 'bg-green-500';
+  if (status === 'Pending') return 'bg-yellow-500';
+  if (status === 'Rejected') return 'bg-red-500';
+  if (status === 'Revision') return 'bg-orange-500';
+  return 'bg-gray-500'; // Default gray if none matches
+};
+
+// Text color class (keep for any other uses)
+const getStatusClass = status => {
+  if (status === 'Approved') return 'text-green-500';
+  if (status === 'Pending') return 'text-yellow-500'; 
+  if (status === 'Rejected') return 'text-red-500';
+  if (status === 'Revision') return 'text-orange-500';
+  return 'text-gray-500';
+};
+
+// Filtered Projects (with search and filtering)
 const filteredProjects = computed(() => {
   return projects.value
     .filter(project => {
@@ -244,6 +234,7 @@ const filteredProjects = computed(() => {
     });
 });
 
+// Pagination Methods
 const totalPages = computed(() => Math.ceil(filteredProjects.value.length / rowsPerPage));
 
 const paginatedProjects = computed(() => {
@@ -264,14 +255,6 @@ const sortBy = key => {
 const formatDate = timestamp => {
   if (!timestamp || !timestamp.seconds) return 'N/A';
   return new Date(timestamp.seconds * 1000).toLocaleDateString();
-};
-
-const getStatusClass = status => {
-  const statusLower = (status || '').toLowerCase();
-  if (statusLower === 'approved') return 'bg-green-100 text-green-700';
-  if (statusLower === 'pending') return 'bg-yellow-100 text-yellow-700';
-  if (statusLower === 'rejected') return 'bg-red-100 text-red-700';
-  return 'bg-gray-100 text-gray-700';
 };
 
 const prevPage = () => {

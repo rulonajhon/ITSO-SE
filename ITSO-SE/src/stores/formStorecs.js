@@ -40,7 +40,7 @@ export const useFormStore = defineStore('form', () => {
   const currentUser = ref(null);
 
   // Status field (NEW)
-  const status = ref('pending'); // <-- Default to "pending"
+  const status = ref('Pending'); // <-- Default to "pending"
 
   // Update current user
   const updateCurrentUser = () => {
@@ -223,7 +223,7 @@ export const useFormStore = defineStore('form', () => {
       additional: ''
     };
 
-    status.value = 'pending'; // <-- Reset status back to pending
+    status.value = 'Pending'; // <-- Reset status back to pending
 
     localStorage.removeItem('submissionBasicInfo');
     console.log('Form data reset successfully');

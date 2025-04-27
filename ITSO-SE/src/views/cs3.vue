@@ -225,7 +225,7 @@ const submitForm = async () => {
   }
 
   try {
-    submissionStatus.value = { type: 'pending', message: 'Submitting your entry...' };
+    submissionStatus.value = { type: 'Pending', message: 'Submitting your entry...' };
     const submissionId = await formStore.submitForm();
     submissionStatus.value = { type: 'success', message: 'Submission successful!' };
 
