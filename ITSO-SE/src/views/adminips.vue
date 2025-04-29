@@ -96,7 +96,7 @@ const fetchProjects = async () => {
   try {
     const projectList = [];
 
-    // From submissions (now using title!)
+    // Fetch from submissions collection
     const submissionSnapshot = await getDocs(collection(db, 'submissions'));
     submissionSnapshot.forEach(doc => {
       const data = doc.data();
@@ -104,14 +104,14 @@ const fetchProjects = async () => {
         id: doc.id,
         source: 'submissions',
         typeOfApplication: data.applicationType || '',
-        fileName: data.title || '', // <-- CHANGED: using title
+        fileName: data.title || '',
         department: data.department || '',
         uploadedAt: data.createdAt || null,
         status: data.status || '',
       });
     });
 
-    // From competitions
+    // Fetch from competitions collection
     const competitionSnapshot = await getDocs(collection(db, 'competitions'));
     competitionSnapshot.forEach(doc => {
       const data = doc.data();
@@ -137,20 +137,22 @@ const fetchStorageFiles = async () => {
   try {
     const allFiles = [];
 
-    const submissionsFolder = storageRef(storage, 'submissions/');
+    // Fetch files from the submissions folder (ipapplication)
+    const submissionsFolder = storageRef(storage, 'submissions/ipapplication/');
     const submissionsList = await listAll(submissionsFolder);
 
     for (const item of submissionsList.items) {
       const url = await getDownloadURL(item);
-      allFiles.push({ name: item.name, url, folder: 'submissions' });
+      allFiles.push({ name: item.name, url, folder: 'submissions/ipapplication' });
     }
 
-    const competitionFolder = storageRef(storage, 'submission_competition/');
+    // Fetch files from the competition folder
+    const competitionFolder = storageRef(storage, 'submissions/competition/');
     const competitionList = await listAll(competitionFolder);
 
     for (const item of competitionList.items) {
       const url = await getDownloadURL(item);
-      allFiles.push({ name: item.name, url, folder: 'submission_competition' });
+      allFiles.push({ name: item.name, url, folder: 'submissions/competition' });
     }
 
     // Match file URLs to projects
@@ -171,9 +173,7 @@ const updateStatus = async (project) => {
     let projectRef;
 
     // Determine which collection the project belongs to and update the status
-    if (project.source === 'IP_Protection') {
-      projectRef = doc(db, 'IP_Protection', project.id);
-    } else if (project.source === 'submissions') {
+    if (project.source === 'submissions') {
       projectRef = doc(db, 'submissions', project.id);
     } else if (project.source === 'competitions') {
       projectRef = doc(db, 'competitions', project.id);
@@ -197,15 +197,6 @@ const getStatusBackgroundClass = status => {
   if (status === 'Rejected') return 'bg-red-500';
   if (status === 'Revision') return 'bg-orange-500';
   return 'bg-gray-500'; // Default gray if none matches
-};
-
-// Text color class (keep for any other uses)
-const getStatusClass = status => {
-  if (status === 'Approved') return 'text-green-500';
-  if (status === 'Pending') return 'text-yellow-500'; 
-  if (status === 'Rejected') return 'text-red-500';
-  if (status === 'Revision') return 'text-orange-500';
-  return 'text-gray-500';
 };
 
 // Filtered Projects (with search and filtering)
@@ -243,26 +234,17 @@ const paginatedProjects = computed(() => {
   return filteredProjects.value.slice(start, end);
 });
 
-const sortBy = key => {
-  if (sortKey.value === key) {
-    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortKey.value = key;
-    sortOrder.value = 'asc';
-  }
-};
-
-const formatDate = timestamp => {
-  if (!timestamp || !timestamp.seconds) return 'N/A';
-  return new Date(timestamp.seconds * 1000).toLocaleDateString();
-};
-
 const prevPage = () => {
   if (currentPage.value > 1) currentPage.value--;
 };
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) currentPage.value++;
+};
+
+const formatDate = timestamp => {
+  if (!timestamp || !timestamp.seconds) return 'N/A';
+  return new Date(timestamp.seconds * 1000).toLocaleDateString();
 };
 
 onMounted(async () => {

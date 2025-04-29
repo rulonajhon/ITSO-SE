@@ -20,29 +20,16 @@
           <div class="section-container">
             <h2 class="section-title">Applicant Information</h2>
             <div class="review-grid">
-              <div class="review-item">
-                <div class="review-label">Title of Research</div>
-                <div class="review-value">{{ formData.title || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Full Name</div>
-                <div class="review-value">{{ formData.fullName || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Position</div>
-                <div class="review-value">{{ formData.position || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Email</div>
-                <div class="review-value">{{ formData.email || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Contact Number</div>
-                <div class="review-value">{{ formData.contactNumber || 'Not provided' }}</div>
-              </div>
-              <div class="review-item">
-                <div class="review-label">Department</div>
-                <div class="review-value">{{ formData.department || 'Not provided' }}</div>
+              <div class="review-item" v-for="(value, label) in {
+                'Title of Research': formData.title,
+                'Full Name': formData.fullName,
+                'Position': formData.position,
+                'Email': formData.email,
+                'Contact Number': formData.contactNumber,
+                'Department': formData.department
+              }" :key="label">
+                <div class="review-label">{{ label }}</div>
+                <div class="review-value">{{ value || 'Not provided' }}</div>
               </div>
             </div>
           </div>
@@ -142,17 +129,16 @@ const steps = ref([
 const currentStep = ref(4);
 
 const formData = ref({
-  title: formStore.title, // 🆕 Added
+  title: formStore.title,
   fullName: formStore.fullName,
   position: formStore.position,
   email: formStore.email,
   contactNumber: formStore.contactNumber,
   department: formStore.department,
-  applicationType: formStore.applicationType, 
+  applicationType: formStore.applicationType,
   uploadedFiles: formStore.uploadedFiles || []
 });
 
-// Check authentication status
 onMounted(() => {
   onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -184,48 +170,62 @@ const goNext = async () => {
     uploadProgress.value = 0;
     const pdfUrls = [];
 
-    if (formData.value.uploadedFiles && formData.value.uploadedFiles.length > 0) {
-      for (const file of formData.value.uploadedFiles) {
-        const sanitizedFileName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '');
-        const filePath = `submissions/ipapplication/${currentUser.value.uid}/${Date.now()}_${sanitizedFileName}`;
-        const fileRef = storageRef(storage, filePath);
+    const maxFileSizeMB = 5;
 
-        const metadata = {
-          contentType: file.type || 'application/octet-stream',
-        };
+    if (!formData.value.uploadedFiles || formData.value.uploadedFiles.length === 0) {
+      errorMessage.value = 'No files uploaded. Please upload a PDF file.';
+      return;
+    }
 
-        const uploadTask = uploadBytesResumable(fileRef, file, metadata);
-
-        await new Promise((resolve, reject) => {
-          uploadTask.on(
-            'state_changed',
-            (snapshot) => {
-              const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-              uploadProgress.value = progress;
-            },
-            (error) => {
-              console.error('Upload error:', error.code, error.message);
-              errorMessage.value = `Error uploading file: ${error.message}`;
-              reject(error);
-            },
-            async () => {
-              try {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                pdfUrls.push({ name: file.name, url: downloadURL });
-                resolve();
-              } catch (error) {
-                console.error('Error getting download URL:', error.message);
-                reject(error);
-              }
-            }
-          );
-        });
+    for (const file of formData.value.uploadedFiles) {
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+      if ((file.type !== 'application/pdf' && fileExtension !== 'pdf') || !file.name) {
+        errorMessage.value = `The file "${file.name}" is not a valid PDF.`;
+        return;
       }
+      if (file.size > maxFileSizeMB * 1024 * 1024) {
+        errorMessage.value = `The file "${file.name}" exceeds the ${maxFileSizeMB}MB size limit.`;
+        return;
+      }
+
+      const sanitizedFileName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '');
+      const filePath = `submissions/ipapplication/${currentUser.value.uid}/${Date.now()}_${sanitizedFileName}`;
+      const fileRef = storageRef(storage, filePath);
+
+      const metadata = {
+        contentType: file.type || 'application/octet-stream',
+      };
+
+      const uploadTask = uploadBytesResumable(fileRef, file, metadata);
+
+      await new Promise((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+            uploadProgress.value = progress;
+          },
+          (error) => {
+            errorMessage.value = `Error uploading file "${file.name}": ${error.message}`;
+            reject(error);
+          },
+          async () => {
+            try {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              pdfUrls.push({ name: file.name, url: downloadURL });
+              resolve();
+            } catch (error) {
+              errorMessage.value = `Error retrieving URL for file "${file.name}": ${error.message}`;
+              reject(error);
+            }
+          }
+        );
+      });
     }
 
     const submissionData = {
       userId: currentUser.value.uid,
-      title: formData.value.title, // 🆕 Saving title too
+      title: formData.value.title,
       fullName: formData.value.fullName,
       position: formData.value.position,
       email: formData.value.email,
@@ -238,11 +238,10 @@ const goNext = async () => {
     };
 
     await addDoc(collection(db, 'submissions'), submissionData);
-
     formStore.resetForm();
     showSuccessModal.value = true;
+
   } catch (error) {
-    console.error('Error during submission:', error);
     errorMessage.value = `Submission error: ${error.message}`;
   } finally {
     isLoading.value = false;
@@ -256,11 +255,11 @@ const viewDocument = (file) => {
   } else if (file.url) {
     window.open(file.url, '_blank');
   } else {
-    console.error('Invalid file object:', file);
     errorMessage.value = 'Unable to preview this file.';
   }
 };
 </script>
+
 
 
 <style scoped>

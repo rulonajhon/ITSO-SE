@@ -1,162 +1,277 @@
 <template>
-    <div class="page-container">
-      <h1 class="form-title">Review Submission</h1>
-  
-      <div class="main-content">
-        <div class="two-column-layout">
-          <div class="column">
-            <div class="section-container">
-              <h2 class="section-title">Basic Information</h2>
-              <div class="review-grid">
-                <div class="review-item"><div class="review-label">Title</div><div class="review-value">{{ formData.title }}</div></div>
-                <div class="review-item"><div class="review-label">Category</div><div class="review-value">{{ formData.category }}</div></div>
+  <div class="page-container">
+    <h1 class="form-title">Review Submission</h1>
+
+    <div class="main-content">
+      <div class="two-column-layout">
+        <div class="column">
+          <!-- Basic Information -->
+          <div class="section-container">
+            <h2 class="section-title">Basic Information</h2>
+            <div class="review-grid">
+              <div class="review-item">
+                <div class="review-label">Title</div>
+                <div class="review-value">{{ formData.title }}</div>
               </div>
-            </div>
-  
-            <div class="section-container">
-              <h2 class="section-title">Inventor Information</h2>
-              <div class="review-grid">
-                <div class="review-item"><div class="review-label">Full Name</div><div class="review-value">{{ formData.fullName }}</div></div>
-                <div class="review-item"><div class="review-label">Email</div><div class="review-value">{{ formData.uploaderEmail }}</div></div>
-                <div class="review-item"><div class="review-label">Contact Number</div><div class="review-value">{{ formData.contactNumber }}</div></div>
-                <div class="review-item"><div class="review-label">Department</div><div class="review-value">{{ formData.department }}</div></div>
+              <div class="review-item">
+                <div class="review-label">Category</div>
+                <div class="review-value">{{ formData.category }}</div>
               </div>
             </div>
           </div>
-  
-          <div class="column">
-            <div class="section-container">
-              <h2 class="section-title">Uploaded Documents</h2>
-              <div class="documents-list">
-                <div class="document-item" :class="{ 'document-missing': !formData.mainDocument }">
-                  <div class="document-icon">
-                    <i class="document-status-icon" :class="formData.mainDocument ? 'icon-check' : 'icon-missing'"></i>
-                  </div>
-                  <div class="document-details">
-                    <div class="document-name">Main Document</div>
-                    <div v-if="formData.mainDocument" class="document-filename">
-                      {{ formData.mainDocument.name }}
-                      <button class="view-btn" @click="viewDocument('main')">View</button>
-                    </div>
-                    <div v-else class="document-missing-text">Document not uploaded</div>
-                  </div>
-                </div>
-  
-                <div class="document-item" :class="{ 'document-optional': !formData.additionalDocument }">
-                  <div class="document-icon">
-                    <i class="document-status-icon" :class="formData.additionalDocument ? 'icon-check' : 'icon-optional'"></i>
-                  </div>
-                  <div class="document-details">
-                    <div class="document-name">Additional Document</div>
-                    <div v-if="formData.additionalDocument" class="document-filename">
-                      {{ formData.additionalDocument.name }}
-                      <button class="view-btn" @click="viewDocument('additional')">View</button>
-                    </div>
-                    <div v-else class="document-optional-text">Optional document</div>
-                  </div>
-                </div>
+
+          <!-- User Information -->
+          <div class="section-container">
+            <h2 class="section-title">User Information</h2>
+            <div class="review-grid">
+              <div class="review-item">
+                <div class="review-label">Full Name</div>
+                <div class="review-value">{{ formData.fullName }}</div>
               </div>
-            </div>
-  
-            <div class="section-container">
-              <h2 class="section-title">Review</h2>
-              <div class="review-options">
-                <label><input type="radio" value="Endorsed" v-model="reviewStatus" /> Endorsed</label>
-                <label><input type="radio" value="Not Endorsed" v-model="reviewStatus" /> Not Endorsed</label>
+              <div class="review-item">
+                <div class="review-label">Email</div>
+                <div class="review-value">{{ formData.email }}</div>
               </div>
-              <div v-if="reviewStatus === 'Not Endorsed'" class="reason-box">
-                <label class="review-label">Reason/s (if not endorsed):</label>
-                <textarea v-model="reviewReason" rows="4" placeholder="Enter reason here..."></textarea>
+              <div class="review-item" v-if="formData.contactNumber">
+                <div class="review-label">Contact Number</div>
+                <div class="review-value">{{ formData.contactNumber }}</div>
               </div>
-              <div class="confirmation-box">
-                <label><input type="checkbox" v-model="confirmSubmission" /> I confirm this review is final and ready to submit.</label>
+              <div class="review-item" v-if="formData.department">
+                <div class="review-label">Department</div>
+                <div class="review-value">{{ formData.department }}</div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-  
-      <div class="fixed-buttons">
-        <button class="btn btn-back" @click="goBack">Back</button>
-        <button class="btn btn-next" :disabled="!confirmSubmission || !reviewStatus" @click="submitForm">Submit</button>
+
+        <div class="column">
+          <!-- Uploaded Documents -->
+          <div class="section-container">
+            <h2 class="section-title">Uploaded Documents</h2>
+            <div class="documents-list">
+              <div v-for="(document, index) in formData.uploadedDocuments" :key="index" class="document-item">
+                <div class="document-icon">
+                  <i class="document-status-icon" :class="document.url ? 'icon-check' : 'icon-missing'"></i>
+                </div>
+                <div class="document-details">
+                  <div class="document-name">{{ document.name }}</div>
+                  <div v-if="document.url" class="document-filename">
+                    <button class="view-btn" @click="viewDocument(document.url)">View</button>
+                    <a :href="document.url" class="download-btn" download>Download</a>
+                  </div>
+                  <div v-else class="document-missing-text">Document not uploaded</div>
+                </div>
+              </div>
+            </div>
+            <div v-if="formData.uploadedDocuments.length === 0" class="no-documents-text">
+              No documents available.
+            </div>
+          </div>
+
+          <!-- Review Section -->
+          <div class="section-container">
+            <h2 class="section-title">Review</h2>
+            <div class="review-options">
+              <label><input type="radio" value="Endorsed" v-model="reviewStatus" /> Endorsed</label>
+              <label><input type="radio" value="Not Endorsed" v-model="reviewStatus" /> Not Endorsed</label>
+            </div>
+            <div v-if="reviewStatus === 'Not Endorsed'" class="reason-box">
+              <label class="review-label">Reason/s (if not endorsed):</label>
+              <textarea v-model="reviewReason" rows="4" placeholder="Enter reason here..."></textarea>
+            </div>
+            <div class="confirmation-box">
+              <label><input type="checkbox" v-model="confirmSubmission" /> I confirm this review is final and ready to submit.</label>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue';
-  import { useRoute, useRouter } from 'vue-router';
-  import { doc, getDoc, updateDoc } from 'firebase/firestore';
-  import { db } from '@/firebase';
-  import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 
-  
-  const route = useRoute();
-  const router = useRouter();
-  
-  const formData = ref({});
-  const reviewStatus = ref('');
-  const reviewReason = ref('');
-  const confirmSubmission = ref(false);
-  
-  const loadSubmission = async () => {
-  const id = route.params.id;
+    <div class="fixed-buttons">
+      <button class="btn btn-back" @click="goBack">Back</button>
+      <button class="btn btn-next" :disabled="!confirmSubmission || !reviewStatus" @click="submitForm">Submit</button>
+    </div>
 
-  // Try fetching from IP_Protection first
-  let docRef = doc(db, 'IP_Protection', id);
-  let docSnap = await getDoc(docRef);
-  let category = 'IP Protection';
+    <!-- PDF Viewer Modal -->
+    <div v-if="showViewer" class="modal-overlay" @click.self="closeViewer">
+      <div class="modal-content">
+        <iframe :src="selectedDocumentUrl" class="pdf-frame"></iframe>
+        <button class="close-btn" @click="closeViewer">Close</button>
+      </div>
+    </div>
+  </div>
+</template>
 
-  if (!docSnap.exists()) {
-    // Try fetching from competition if not found
-    docRef = doc(db, 'submission_competition', id);
-    docSnap = await getDoc(docRef);
-    category = 'Competition & Publication';
-  }
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { db } from '@/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    formData.value = {
-      title: data.fileName || data.title || '',
-      category,
-      fullName: data.fullName || '',
-      uploaderEmail: data.uploaderEmail || '',
-      contactNumber: data.contactNumber || '',
-      department: data.department || '',
-      mainDocument: data.mainDocument || null,
-      additionalDocument: data.additionalDocument || null
-    };
+const route = useRoute();
+const router = useRouter();
+
+const formData = ref({
+  title: '',
+  category: '',
+  fullName: '',
+  email: '',
+  contactNumber: '',
+  department: '',
+  uploadedDocuments: []
+});
+
+const reviewStatus = ref('');
+const reviewReason = ref('');
+const confirmSubmission = ref(false);
+
+let submissionCollection = 'submissions';
+let docRef = null;
+
+const selectedDocumentUrl = ref(null);
+const showViewer = ref(false);
+
+const viewDocument = (url) => {
+  if (url) {
+    selectedDocumentUrl.value = url;
+    showViewer.value = true;
   } else {
-    alert('Submission not found.');
-    router.push('/adminips');
+    alert('Document not available.');
   }
 };
 
+const closeViewer = () => {
+  selectedDocumentUrl.value = null;
+  showViewer.value = false;
+};
 
-
-  
-  const viewDocument = (type) => {
-    const url =
-      type === 'main' ? formData.value.mainDocument?.url : formData.value.additionalDocument?.url;
-    if (url) window.open(url, '_blank');
-    else alert('Document not available.');
-  };
-  
-  const submitForm = async () => {
-    const id = route.params.id;
-    const docRef = doc(db, 'submissions/ipapplication/entries', id);
+const submitForm = async () => {
+  try {
     await updateDoc(docRef, {
       status: reviewStatus.value,
       reason: reviewStatus.value === 'Not Endorsed' ? reviewReason.value : '',
       reviewedAt: new Date()
     });
-    router.push('/submission-success');
-  };
-  
-  const goBack = () => router.push('/adminips');
-  
-  onMounted(loadSubmission);
-  </script>
+    router.push('/submission-confirmation');
+  } catch (e) {
+    console.error('Review submission failed:', e);
+    alert('Failed to submit review.');
+  }
+};
+
+const goBack = () => {
+  router.push('/adminips');
+};
+
+const loadSubmission = async () => {
+  const id = route.params.id;
+  const storage = getStorage();
+  let folderPath = '';
+  let userId = id;
+
+  docRef = doc(db, 'submissions', id);
+  let docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    docRef = doc(db, 'competition', id);
+    docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
+      alert('Submission not found.');
+      return router.push('/adminips');
+    } else {
+      submissionCollection = 'competition';
+      folderPath = 'submissions/competition/';
+    }
+  } else {
+    folderPath = 'submissions/ipapplication/';
+  }
+
+  const data = docSnap.data();
+  formData.value.title = data.title || data.fileName || '';
+  formData.value.category = submissionCollection === 'competition' ? 'Competition & Publication' : 'IP Submission';
+  formData.value.fullName = data.fullName || '';
+  formData.value.email = submissionCollection === 'competition' ? data.userEmail || '' : data.email || data.uploaderEmail || '';
+  formData.value.contactNumber = data.contactNumber || '';
+  formData.value.department = data.department || '';
+  userId = data.userId || id;
+
+  const uploadedDocs = data.uploadedDocuments || [];
+  formData.value.uploadedDocuments = await Promise.all(uploadedDocs.map(async (doc) => {
+    if (doc.url) {
+      return {
+        name: doc.name,
+        storedName: doc.storedName || doc.name,
+        url: doc.url
+      };
+    }
+
+    try {
+      const storedFileName = doc.storedName || doc.name;
+      const documentUrl = await getDownloadURL(storageRef(storage, `${folderPath}${userId}/${storedFileName}`));
+      return {
+        name: doc.name,
+        storedName: storedFileName,
+        url: documentUrl
+      };
+    } catch (e) {
+      console.warn(`Could not fetch URL for ${doc.name}:`, e);
+      return {
+        name: doc.name,
+        storedName: doc.storedName || doc.name,
+        url: null
+      };
+    }
+  }));
+};
+
+onMounted(loadSubmission);
+</script>
+
+<style scoped>
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  position: relative;
+  background: white;
+  max-width: 90%;
+  width: 1000px;
+  max-height: 90vh;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 0 25px rgba(0,0,0,0.5);
+}
+
+.pdf-frame {
+  width: 100%;
+  height: 80vh;
+  border: none;
+}
+
+.close-btn {
+  display: block;
+  margin: 1rem auto 0;
+  padding: 10px 20px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+</style>
+
+
   
   <style scoped>
   /* Add your styles here or import a CSS file */

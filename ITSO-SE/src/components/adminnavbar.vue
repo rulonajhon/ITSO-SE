@@ -105,47 +105,48 @@ const fetchNotifications = async () => {
   const submissionsCollection = collection(db, 'submissions');
   const competitionsCollection = collection(db, 'competitions');
 
-  // Listen to submissions collection
   onSnapshot(submissionsCollection, async (submissionSnapshot) => {
     const submissionNotifs = await Promise.all(
       submissionSnapshot.docs.map(async (docSnap) => {
         const data = docSnap.data();
         return {
           id: docSnap.id,
-          title: data.title || 'Untitled Submission', // Use title from submission
-          uploadedAt: data.uploadedAt,
-          uploaderName: data.fullName || 'Unknown', // Directly fetch fullName from submission
+          title: data.title || 'Untitled Submission',
+          uploadedAt: data.createdAt || null, // ✅ Use createdAt here
+          uploaderName: data.fullName || 'Unknown',
           read: data.read || false,
-          type: 'IP Protection', // Automatically set type to 'IP Protection' for submissions
+          type: 'IP Protection',
         };
       })
     );
 
-    // Listen to competitions collection
     onSnapshot(competitionsCollection, async (competitionSnapshot) => {
       const competitionNotifs = await Promise.all(
         competitionSnapshot.docs.map(async (docSnap) => {
           const data = docSnap.data();
           return {
             id: docSnap.id,
-            title: data.title || 'Untitled Competition', // title for competitions
-            uploadedAt: data.createdAt, // Assuming competitions use createdAt
-            uploaderName: data.fullName || 'Unknown', // Directly fetch fullName from competition
+            title: data.title || 'Untitled Competition',
+            uploadedAt: data.submittedAt || null, // ✅ Use submittedAt here
+            uploaderName: data.fullName || 'Unknown',
             read: data.read || false,
-            type: 'Competition', // Set type as 'Competition' for competitions
+            type: 'Competition',
           };
         })
       );
 
-      // Combine both submission and competition notifications
+      // ✅ Combine and sort
       const allNotifs = [...submissionNotifs, ...competitionNotifs];
       notifications.value = allNotifs.sort((a, b) => {
         if (!a.uploadedAt || !b.uploadedAt) return 0;
-        return b.uploadedAt.seconds - a.uploadedAt.seconds; // Sort by uploadedAt
+        const aTime = a.uploadedAt.seconds ? a.uploadedAt.seconds : a.uploadedAt.toMillis() / 1000;
+        const bTime = b.uploadedAt.seconds ? b.uploadedAt.seconds : b.uploadedAt.toMillis() / 1000;
+        return bTime - aTime;
       });
     });
   });
 };
+
 
 const unreadCount = computed(() =>
   notifications.value.filter((notif) => !notif.read).length
@@ -160,15 +161,33 @@ const goToDetail = async (id) => {
 };
 
 const relativeTime = (timestamp) => {
-  if (!timestamp?.seconds) return 'Just now';
-  const seconds = timestamp.seconds;
-  const now = Date.now() / 1000;
-  const diff = now - seconds;
-  if (diff < 60) return 'Just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
-  return new Date(seconds * 1000).toLocaleDateString();
+  if (!timestamp) return 'Just now';
+
+  let timeMillis;
+
+  if (timestamp.seconds) {
+    timeMillis = timestamp.seconds * 1000;
+  } else if (timestamp.toDate) {
+    timeMillis = timestamp.toDate().getTime();
+  } else if (timestamp instanceof Date) {
+    timeMillis = timestamp.getTime();
+  } else {
+    return 'Just now';
+  }
+
+  const now = Date.now();
+  const diffInSeconds = (now - timeMillis) / 1000;
+
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hr ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} day${Math.floor(diffInSeconds / 86400) > 1 ? 's' : ''} ago`;
+  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)} week${Math.floor(diffInSeconds / 604800) > 1 ? 's' : ''} ago`;
+  
+  return new Date(timeMillis).toLocaleDateString(); // fallback to date if older than 1 month
 };
+
+
 
 onMounted(() => {
   onAuthStateChanged(auth, (currentUser) => {
