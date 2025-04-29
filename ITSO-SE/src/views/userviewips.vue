@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <h1 class="form-title">Review Submission</h1>
+    <h1 class="form-title">Submission Details</h1>
 
     <div class="main-content">
       <div class="two-column-layout">
@@ -13,13 +13,13 @@
                 <div class="review-label">Title</div>
                 <div class="review-value">{{ formData.title }}</div>
               </div>
-              <div class="review-item">
-                <div class="review-label">Category</div>
-                <div class="review-value">{{ formData.category }}</div>
-              </div>
               <div class="review-item" v-if="formData.applicationType">
                 <div class="review-label">Application Type</div>
                 <div class="review-value">{{ formData.applicationType }}</div>
+              </div>
+              <div class="review-item">
+                <div class="review-label">Status</div>
+                <div class="review-value" :class="statusClass">{{ formData.status || 'Pending' }}</div>
               </div>
             </div>
           </div>
@@ -89,20 +89,14 @@
             </div>
           </div>
 
-          <!-- Review Section -->
-          <div class="section-container">
-            <h2 class="section-title">Review</h2>
-            <div class="review-options">
-              <label><input type="radio" value="Approved" v-model="reviewStatus" /> Approved</label>
-              <label><input type="radio" value="Rejected" v-model="reviewStatus" /> Rejected</label>
-              <label><input type="radio" value="Revision" v-model="reviewStatus" /> Revision</label>
-            </div>
-            <div v-if="reviewStatus === 'Rejected' || reviewStatus === 'Revision'" class="reason-box">
-              <label class="review-label">Reason/s:</label>
-              <textarea v-model="reviewReason" rows="4" placeholder="Enter reason here..."></textarea>
-            </div>
-            <div class="confirmation-box">
-              <label><input type="checkbox" v-model="confirmSubmission" /> I confirm this review is final and ready to submit.</label>
+          <!-- Admin Feedback Section -->
+          <div class="section-container" v-if="formData.reason">
+            <h2 class="section-title">Admin Feedback</h2>
+            <div class="feedback-box">
+              <p class="feedback-text">{{ formData.reason }}</p>
+              <div class="feedback-date" v-if="formData.reviewedAt">
+                Last updated: {{ formatDate(formData.reviewedAt) }}
+              </div>
             </div>
           </div>
         </div>
@@ -158,7 +152,6 @@
 
     <div class="fixed-buttons">
       <button class="btn btn-back" @click="goBack">Back</button>
-      <button class="btn btn-next" :disabled="!confirmSubmission || !reviewStatus" @click="submitForm">Submit</button>
     </div>
 
     <!-- PDF Viewer Modal -->
@@ -183,29 +176,34 @@ const router = useRouter();
 
 const formData = ref({
   title: '',
-  category: '',
   fullName: '',
   email: '',
   contactNumber: '',
   department: '',
   applicationType: '',
   uploadedDocuments: [],
-  fileURLs: null
+  fileURLs: null,
+  status: '',
+  reason: '',
+  reviewedAt: null
 });
-
-const reviewStatus = ref('');
-const reviewReason = ref('');
-const confirmSubmission = ref(false);
 
 let submissionCollection = '';
 let docRef = null;
+const userComment = ref('');
+const comments = ref([]);
 
 const selectedDocumentUrl = ref(null);
 const showViewer = ref(false);
 
-// Comments functionality
-const userComment = ref('');
-const comments = ref([]);
+const statusClass = computed(() => {
+  const status = (formData.value.status || '').toLowerCase();
+  if (status === 'approved') return 'status-approved';
+  if (status === 'rejected') return 'status-rejected';
+  if (status === 'revision') return 'status-revision';
+  if (status === 'pending') return 'status-pending';
+  return '';
+});
 
 const hasDocuments = computed(() => {
   if (formData.value.fileURLs) {
@@ -224,21 +222,6 @@ const formatDocumentName = (docType) => {
   return nameMap[docType] || docType;
 };
 
-const viewDocument = (url) => {
-  if (url) {
-    selectedDocumentUrl.value = url;
-    showViewer.value = true;
-  } else {
-    alert('Document not available.');
-  }
-};
-
-const closeViewer = () => {
-  selectedDocumentUrl.value = null;
-  showViewer.value = false;
-};
-
-// Comment-related functions
 const formatDate = (timestamp) => {
   if (!timestamp) return 'N/A';
   
@@ -262,16 +245,30 @@ const formatDate = (timestamp) => {
 };
 
 const getUserInitials = () => {
-  return 'AD'; // Admin initials (assuming this is the admin review page)
+  const name = formData.value.fullName || auth.currentUser?.displayName || 'User';
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 };
 
 const getCommentInitials = (comment) => {
   if (comment.isAdmin) {
     return 'AD';
   } else {
-    const name = formData.value.fullName || 'User';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    return getUserInitials();
   }
+};
+
+const viewDocument = (url) => {
+  if (url) {
+    selectedDocumentUrl.value = url;
+    showViewer.value = true;
+  } else {
+    alert('Document not available.');
+  }
+};
+
+const closeViewer = () => {
+  selectedDocumentUrl.value = null;
+  showViewer.value = false;
 };
 
 const submitComment = async () => {
@@ -290,7 +287,7 @@ const submitComment = async () => {
       text: userComment.value.trim(),
       userId: currentUser.uid,
       userEmail: currentUser.email,
-      isAdmin: true, // Since this is the admin review page
+      isAdmin: false,
       timestamp: new Date()
     };
     
@@ -327,50 +324,8 @@ const loadComments = () => {
   });
 };
 
-const submitForm = async () => {
-  try {
-    if (!docRef) {
-      alert('No submission reference found.');
-      return;
-    }
-    
-    // Update the document with status, reason, reviewedAt AND lastStatusUpdate
-    await updateDoc(docRef, {
-      status: reviewStatus.value,
-      reason: (reviewStatus.value === 'Rejected' || reviewStatus.value === 'Revision') ? reviewReason.value : '',
-      reviewedAt: new Date(),
-      lastStatusUpdate: new Date() // Add this line to update the status timestamp
-    });
-    
-    // Add a system comment about the status change
-    if (reviewStatus.value) {
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        const statusChangeComment = {
-          submissionId: route.params.id,
-          collectionName: submissionCollection,
-          text: `Status updated to: ${reviewStatus.value}${reviewReason.value ? ` - ${reviewReason.value}` : ''}`,
-          userId: currentUser.uid,
-          userEmail: currentUser.email,
-          isAdmin: true,
-          isSystemMessage: true,
-          timestamp: new Date()
-        };
-        
-        await addDoc(collection(db, 'comments'), statusChangeComment);
-      }
-    }
-    
-    alert('Review submitted successfully!');
-    router.push('/adminips');
-  } catch (e) {
-    console.error('Review submission failed:', e);
-    alert('Failed to submit review: ' + e.message);
-  }
-};
-
 const goBack = () => {
-  router.push('/adminips');
+  router.push('/home');
 };
 
 const loadSubmission = async () => {
@@ -393,7 +348,7 @@ const loadSubmission = async () => {
       
       if (!docSnap.exists()) {
         alert('Submission not found in any collection.');
-        return router.push('/adminips');
+        return router.push('/home');
       } else {
         submissionCollection = 'submission_competition';
       }
@@ -413,24 +368,28 @@ const loadSubmission = async () => {
     // Competition document format (from formStore.js)
     formData.value = {
       title: data.title || '',
-      category: data.category || '',
       fullName: data.fullName || '',
       email: data.userEmail || data.email || '',
       contactNumber: data.contactNumber || '',
       department: data.department || '',
       applicationType: data.applicationType || 'Competition',
-      fileURLs: data.fileURLs || {}
+      fileURLs: data.fileURLs || {},
+      status: data.status || 'Pending',
+      reason: data.reason || '',
+      reviewedAt: data.reviewedAt || null
     };
   } else {
     // Regular submission document format
     formData.value = {
       title: data.title || data.fileName || '',
-      category: 'IP Submission',
       fullName: data.fullName || '',
       email: data.email || data.uploaderEmail || '',
       contactNumber: data.contactNumber || '',
       department: data.department || '',
       applicationType: data.applicationType || 'IP Protection',
+      status: data.status || 'Pending',
+      reason: data.reason || '',
+      reviewedAt: data.reviewedAt || null
     };
     
     // Handle uploaded documents
@@ -468,22 +427,18 @@ const loadSubmission = async () => {
     }
   }
   
-  // Initialize review status if it exists
-  if (data.status) {
-    reviewStatus.value = data.status;
-  }
-  
-  if (data.reason) {
-    reviewReason.value = data.reason;
+  // Mark notification as read if it exists
+  if (data.read === false) {
+    await updateDoc(docRef, { read: true });
   }
 };
 
 onMounted(() => {
   loadSubmission();
-  loadComments(); // Load comments when component mounts
+  loadComments();
 });
 </script>
-
+  
 <style scoped>
 .modal-overlay {
   position: fixed;
@@ -641,394 +596,350 @@ onMounted(() => {
   font-style: italic;
   padding: 1rem;
 }
-</style>
 
-  
-  <style scoped>
-  /* Add your styles here or import a CSS file */
-  .confirmation-box {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-  }
-  .fixed-buttons {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    padding: 1rem;
-    background: white;
-    display: flex;
-    justify-content: space-between;
-    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
-  }
-  </style>
-  
-  
-  <style scoped>
-  /* Page Container */
-  .page-container {
-    min-height: 100vh;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding-bottom: 80px;
-  }
-  
-  /* Form Title */
-  .form-title {
-    color: #ff6b8a;
-    text-align: center;
-    margin-bottom: 20px;
-    font-size: 24px;
-    font-weight: bold;
-  }
-  
-  /* Progress Bar Styles */
-  .progress-container {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto 30px auto;
-    padding: 20px;
-    position: relative;
-  }
-  
-  .progress-bar {
-    display: flex;
-    justify-content: space-between;
-    position: relative;
-    margin-bottom: 30px;
-    padding-top: 15px;
-  }
-  
-  /* Progress bar line - background */
-  .progress-bar::before {
-    content: '';
-    position: absolute;
-    top: 15px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background-color: #ddd;
-    z-index: 1;
-  }
-  
-  /* Progress bar line - filled */
-  .progress-bar::after {
-    content: '';
-    position: absolute;
-    top: 15px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: #ff6b8a;
-    z-index: 1;
-  }
-  
-  .progress-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    z-index: 2;
-    flex: 1;
-  }
-  
-  .step-circle {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background-color: #ddd;
-    color: #666;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 500;
-    font-size: 12px;
-    margin-bottom: 8px;
-  }
-  
-  .progress-step.active .step-circle {
-    background-color: #ff6b8a;
-    color: white;
-  }
-  
-  .step-label {
-    font-size: 11px;
-    text-align: center;
-    color: #999;
-    font-weight: 400;
-    max-width: 80px;
-    line-height: 1.2;
-  }
-  
-  .progress-step.active .step-label {
-    color: #ff6b8a;
-    font-weight: 700;
-  }
-  
-  /* Main Content Container */
-  .main-content {
-    flex: 1;
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 0 auto;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* Two Column Layout */
+/* Page Container */
+.page-container {
+  min-height: 100vh;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+
+/* Form Title */
+.form-title {
+  color: #ff6b8a;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* Progress Bar Styles */
+.progress-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 30px auto;
+  padding: 20px;
+  position: relative;
+}
+
+.progress-bar {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 30px;
+  padding-top: 15px;
+}
+
+/* Progress bar line - background */
+.progress-bar::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #ddd;
+  z-index: 1;
+}
+
+/* Progress bar line - filled */
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #ff6b8a;
+  z-index: 1;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.step-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #ddd;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.progress-step.active .step-circle {
+  background-color: #ff6b8a;
+  color: white;
+}
+
+.step-label {
+  font-size: 11px;
+  text-align: center;
+  color: #999;
+  font-weight: 400;
+  max-width: 80px;
+  line-height: 1.2;
+}
+
+.progress-step.active .step-label {
+  color: #ff6b8a;
+  font-weight: 700;
+}
+
+/* Main Content Container */
+.main-content {
+  flex: 1;
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Two Column Layout */
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+@media (min-width: 768px) {
   .two-column-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 30px;
-    margin-bottom: 30px;
+    grid-template-columns: 1fr 1fr;
   }
-  
-  @media (min-width: 768px) {
-    .two-column-layout {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-  
-  .column {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  .section-container {
-    margin-bottom: 20px;
-  }
-  
-  .section-title {
-    color: #ff6b8a;
-    font-size: 18px;
-    margin-bottom: 20px;
-    font-weight: 500;
-  }
-  
-  /* Review Grid */
-  .review-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  
-  .review-item {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-  }
-  
-  .review-label {
-    color: #ff6b8a;
-    font-size: 12px;
-    margin-bottom: 5px;
-    font-weight: 500;
-  }
-  
-  .review-value {
-    font-size: 14px;
-    color: #333;
-  }
-  
-  /* Documents List */
-  .documents-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  .document-item {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #4CAF50;
-  }
-  
-  .document-item.document-missing {
-    border-left-color: #f44336;
-  }
-  
-  .document-item.document-optional {
-    border-left-color: #FFC107;
-  }
-  
-  .document-icon {
-    margin-right: 15px;
-  }
-  
-  .document-status-icon {
-    font-size: 18px;
-    font-style: normal;
-  }
-  
-  .document-status-icon.icon-check::before {
-    content: '✓';
-    color: #4CAF50;
-  }
-  
-  .document-status-icon.icon-missing::before {
-    content: '✗';
-    color: #f44336;
-  }
-  
-  .document-status-icon.icon-optional::before {
-    content: '!';
-    color: #FFC107;
-  }
-  
-  .document-details {
-    flex: 1;
-  }
-  
-  .document-name {
-    font-weight: 500;
-    margin-bottom: 5px;
-  }
-  
-  .document-filename {
-    font-size: 12px;
-    color: #666;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .view-btn {
-    padding: 2px 8px;
-    background: #ff6b8a;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 11px;
-    cursor: pointer;
-  }
-  
-  .document-missing-text {
-    font-size: 12px;
-    color: #f44336;
-    font-style: italic;
-  }
-  
-  .document-optional-text {
-    font-size: 12px;
-    color: #FFC107;
-    font-style: italic;
-  }
-  
-  /* Confirmation Section */
-  .confirmation-section {
-    margin-bottom: 20px;
-  }
-  
-  .checkbox-label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-  }
-  
-  .checkbox-custom {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #ff6b8a;
-    border-radius: 4px;
-    margin-right: 10px;
-    position: relative;
-  }
-  
-  .checkbox-label input[type="checkbox"] {
-    display: none;
-  }
-  
-  .checkbox-custom::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 6px;
-    width: 5px;
-    height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-    opacity: 0;
-  }
-  
-  .checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
-    background-color: #ff6b8a;
-  }
-  
-  .checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
-    opacity: 1;
-  }
-  
-  .checkbox-text {
-    font-size: 14px;
-    color: #333;
-  }
-  
-  /* Form Buttons */
-  .fixed-buttons {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    padding: 20px;
-    background-color: white;
-    border-top: 1px solid #eee;
-    z-index: 100;
-  }
-  
-  .btn {
-    padding: 10px 30px;
-    border: none;
-    border-radius: 20px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s;
-    min-width: 120px;
-  }
-  
-  .btn-back, .btn-next {
-    background-color: #ff6b8a;
-    color: white;
-  }
-  
-  .btn:disabled {
-    background-color: #ddd;
-    cursor: not-allowed;
-  }
-  
-  .btn:not(:disabled):hover {
-    opacity: 0.9;
-  }
-  .review-options {
-    display: flex;
-    justify-content: center; /* Center the radio buttons horizontally */
-    gap: 20px;
-    margin-bottom: 10px;
-  }
-  
-  .review-options label {
-    font-size: 16px;
-    color: #333;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  .review-options input[type="radio"] {
-    transform: scale(1.2);
-    accent-color: #ff6b8a;
-  }
-  
-  </style>
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-container {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  color: #ff6b8a;
+  font-size: 18px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+/* Review Grid */
+.review-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.review-item {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.review-label {
+  color: #ff6b8a;
+  font-size: 12px;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.review-value {
+  font-size: 14px;
+  color: #333;
+}
+
+/* Status Classes */
+.status-approved {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.status-rejected {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.status-revision {
+  color: #FF9800;
+  font-weight: bold;
+}
+
+.status-pending {
+  color: #2196F3;
+  font-weight: bold;
+}
+
+/* Documents List */
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #4CAF50;
+}
+
+.document-item.document-missing {
+  border-left-color: #f44336;
+}
+
+.document-item.document-optional {
+  border-left-color: #FFC107;
+}
+
+.document-icon {
+  margin-right: 15px;
+}
+
+.document-status-icon {
+  font-size: 18px;
+  font-style: normal;
+}
+
+.document-status-icon.icon-check::before {
+  content: '✓';
+  color: #4CAF50;
+}
+
+.document-status-icon.icon-missing::before {
+  content: '✗';
+  color: #f44336;
+}
+
+.document-status-icon.icon-optional::before {
+  content: '!';
+  color: #FFC107;
+}
+
+.document-details {
+  flex: 1;
+}
+
+.document-name {
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.document-filename {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.view-btn, .download-btn {
+  padding: 2px 8px;
+  background: #ff6b8a;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.document-missing-text {
+  font-size: 12px;
+  color: #f44336;
+  font-style: italic;
+}
+
+.document-optional-text {
+  font-size: 12px;
+  color: #FFC107;
+  font-style: italic;
+}
+
+/* Feedback Box */
+.feedback-box {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #ff6b8a;
+}
+
+.feedback-text {
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.feedback-date {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Form Buttons */
+.fixed-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+  background-color: white;
+  border-top: 1px solid #eee;
+  z-index: 100;
+}
+
+.btn {
+  padding: 10px 30px;
+  border: none;
+  border-radius: 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  min-width: 120px;
+}
+
+.btn-back, .btn-next {
+  background-color: #ff6b8a;
+  color: white;
+}
+
+.btn:disabled {
+  background-color: #ddd;
+  cursor: not-allowed;
+}
+
+.btn:not(:disabled):hover {
+  opacity: 0.9;
+}
+
+.no-documents-text {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 1rem;
+}
+</style>

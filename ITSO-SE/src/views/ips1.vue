@@ -62,19 +62,19 @@
                 <div class="select-wrapper">
                   <select v-model="form.department" required>
                     <option value="" disabled>Select Department</option>
-                    <option value="elementary">Elementary</option>
-                    <option value="juniorHighschool">Junior Highschool</option>
-                    <option value="seniorHighschool">Senior Highschool</option>
-                    <option value="accounting">College of Accounting and Business Education</option>
-                    <option value="arts">College of Arts and Humanities</option>
-                    <option value="ccs">College of Computer Studies</option>
-                    <option value="engineering">College of Engineering and Architecture</option>
-                    <option value="environment">College of Human Environment Science and Food Studies</option>
-                    <option value="medical">College of Medical and Biological Sciences</option>
-                    <option value="music">College of Music</option>
-                    <option value="nursing">College of Nursing</option>
-                    <option value="pharmacy">College of Pharmacy and Chemistry</option>
-                    <option value="education">College of Teacher Education</option>
+                    <option value="Elementary">Elementary</option>
+                    <option value="Junior Highschool">Junior Highschool</option>
+                    <option value="Senior Highschool">Senior Highschool</option>
+                    <option value="College of Accounting and Business Education">College of Accounting and Business Education</option>
+                    <option value="College of Arts and Humanities">College of Arts and Humanities</option>
+                    <option value="College of Computer Studies">College of Computer Studies</option>
+                    <option value="College of Engineering and Architecture">College of Engineering and Architecture</option>
+                    <option value="College of Human Environment Science and Food Studies">College of Human Environment Science and Food Studies</option>
+                    <option value="College of Medical and Biological Sciences">College of Medical and Biological Sciences</option>
+                    <option value="College of Music">College of Music</option>
+                    <option value="College of Nursing">College of Nursing</option>
+                    <option value="College of Pharmacy and Chemistry">College of Pharmacy and Chemistry</option>
+                    <option value="College of Teacher Education">College of Teacher Education</option>
                   </select>
                   <div class="select-arrow">▼</div>
                 </div>

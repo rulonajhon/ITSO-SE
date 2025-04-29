@@ -26,7 +26,7 @@
                     :key="notif.id"
                     class="notif-item"
                     :class="{ unread: !notif.read }"
-                    @click="goToDetail(notif.id)"
+                    @click="goToDetail(notif.id, notif.type)"
                   >
                     <div class="notif-avatar">
                       <i class="pi pi-user"></i>
@@ -58,7 +58,16 @@
             </OverlayPanel>
           </div>
 
-
+          <!-- Services Dropdown -->
+          <div class="relative">
+            <i class="pi pi-bars services-icon" @click="toggleServiceMenu"></i>
+            <OverlayPanel ref="serviceOverlay">
+              <ul class="dropdown-menu">
+                <li @click="navigateTo('/ipsdisclaimer')" class="dropdown-item">IP Protection Application</li>
+                <li @click="navigateTo('/cs1')" class="dropdown-item">Competition and Publication Form</li>
+              </ul>
+            </OverlayPanel>
+          </div>
         </div>
       </template>
     </Menubar>
@@ -76,14 +85,17 @@ import OverlayPanel from 'primevue/overlaypanel';
 
 const router = useRouter();
 const profileOverlay = ref(null);
-
+const serviceOverlay = ref(null);
 const notificationOverlay = ref(null);
 const user = ref(null);
 const notifications = ref([]);
 
 const items = ref([
   { label: 'Home', command: () => router.push('/') },
-  { label: 'Services', command: () => router.push('/services') },
+  { 
+    label: 'Services',
+    command: (event) => toggleServiceMenu(event.originalEvent),
+  },
   { label: 'Policies', command: () => router.push('/policies') },
   { label: 'Contact', command: () => router.push('/contacts') },
 ]);
@@ -92,7 +104,9 @@ const toggleProfileMenu = (event) => {
   profileOverlay.value.toggle(event);
 };
 
-
+const toggleServiceMenu = (event) => {
+  serviceOverlay.value.toggle(event);
+};
 
 const toggleNotifications = (event) => {
   notificationOverlay.value.toggle(event);
@@ -196,7 +210,7 @@ const limitedNotifications = computed(() => {
     .slice(0, 10);
 });
 
-const goToDetail = async (id) => {
+const goToDetail = async (id, type) => {
   try {
     // Find the collection based on the notification
     const notification = notifications.value.find(n => n.id === id);
@@ -209,8 +223,8 @@ const goToDetail = async (id) => {
       lastStatusUpdate: new Date() // Add timestamp when user reads the notification
     });
     
-    // Navigate to the appropriate detail page
-    router.push(`/adminips/${id}`);
+    // Navigate to the user view page instead of admin page
+    router.push(`/userviewips/${id}`);
   } catch (error) {
     console.error("Error updating notification:", error);
   }
@@ -355,7 +369,12 @@ onMounted(() => {
   cursor: pointer;
 }
 
-
+/* Services Icon */
+.services-icon {
+  font-size: 20px;
+  color: white;
+  cursor: pointer;
+}
 
 /* Enhanced Notification Dropdown */
 .notif-dropdown {
@@ -443,12 +462,7 @@ onMounted(() => {
   font-size: 11px;
 }
 
-.status-tag {
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-}
-
+/* Status text styling */
 .status-text {
   font-weight: 600;
 }
@@ -465,6 +479,13 @@ onMounted(() => {
 .status-text.forrevision,
 .status-text.revision {
   color: orange;
+}
+
+/* Status tag styling (for backwards compatibility) */
+.status-tag {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
 }
 
 .status-tag.approved {

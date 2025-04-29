@@ -43,6 +43,11 @@ const routes = [
         name: 'AdminViewIps',
         component: () => import('@/views/adminviewips.vue') // update path if needed
       },
+      {
+        path: '/userviewips/:id',
+        name: 'UserViewIps',
+        component: () => import('@/views/userviewips.vue') // update path if needed
+      },
       
     {path: '/submission-confirmation',name: 'SubmissionConfirmation',component: SubmissionConfirmation},
 ];
