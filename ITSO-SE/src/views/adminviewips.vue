@@ -17,6 +17,10 @@
                 <div class="review-label">Category</div>
                 <div class="review-value">{{ formData.category }}</div>
               </div>
+              <div class="review-item" v-if="formData.applicationType">
+                <div class="review-label">Application Type</div>
+                <div class="review-value">{{ formData.applicationType }}</div>
+              </div>
             </div>
           </div>
 
@@ -49,21 +53,38 @@
           <div class="section-container">
             <h2 class="section-title">Uploaded Documents</h2>
             <div class="documents-list">
-              <div v-for="(document, index) in formData.uploadedDocuments" :key="index" class="document-item">
-                <div class="document-icon">
-                  <i class="document-status-icon" :class="document.url ? 'icon-check' : 'icon-missing'"></i>
-                </div>
-                <div class="document-details">
-                  <div class="document-name">{{ document.name }}</div>
-                  <div v-if="document.url" class="document-filename">
-                    <button class="view-btn" @click="viewDocument(document.url)">View</button>
-                    <a :href="document.url" class="download-btn" download>Download</a>
+              <div v-if="formData.fileURLs" class="document-list">
+                <div v-for="(url, docType) in formData.fileURLs" :key="docType" class="document-item" v-show="url">
+                  <div class="document-icon">
+                    <i class="document-status-icon icon-check"></i>
                   </div>
-                  <div v-else class="document-missing-text">Document not uploaded</div>
+                  <div class="document-details">
+                    <div class="document-name">{{ formatDocumentName(docType) }}</div>
+                    <div class="document-filename">
+                      <button class="view-btn" @click="viewDocument(url)">View</button>
+                      <a :href="url" class="download-btn" download>Download</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div v-else class="documents-list">
+                <div v-for="(document, index) in formData.uploadedDocuments" :key="index" class="document-item">
+                  <div class="document-icon">
+                    <i class="document-status-icon" :class="document.url ? 'icon-check' : 'icon-missing'"></i>
+                  </div>
+                  <div class="document-details">
+                    <div class="document-name">{{ document.name }}</div>
+                    <div v-if="document.url" class="document-filename">
+                      <button class="view-btn" @click="viewDocument(document.url)">View</button>
+                      <a :href="document.url" class="download-btn" download>Download</a>
+                    </div>
+                    <div v-else class="document-missing-text">Document not uploaded</div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div v-if="formData.uploadedDocuments.length === 0" class="no-documents-text">
+            <div v-if="!hasDocuments" class="no-documents-text">
               No documents available.
             </div>
           </div>
@@ -72,11 +93,12 @@
           <div class="section-container">
             <h2 class="section-title">Review</h2>
             <div class="review-options">
-              <label><input type="radio" value="Endorsed" v-model="reviewStatus" /> Endorsed</label>
-              <label><input type="radio" value="Not Endorsed" v-model="reviewStatus" /> Not Endorsed</label>
+              <label><input type="radio" value="Approved" v-model="reviewStatus" /> Approved</label>
+              <label><input type="radio" value="Rejected" v-model="reviewStatus" /> Rejected</label>
+              <label><input type="radio" value="Revision" v-model="reviewStatus" /> Revision</label>
             </div>
-            <div v-if="reviewStatus === 'Not Endorsed'" class="reason-box">
-              <label class="review-label">Reason/s (if not endorsed):</label>
+            <div v-if="reviewStatus === 'Rejected' || reviewStatus === 'Revision'" class="reason-box">
+              <label class="review-label">Reason/s:</label>
               <textarea v-model="reviewReason" rows="4" placeholder="Enter reason here..."></textarea>
             </div>
             <div class="confirmation-box">
@@ -103,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { db } from '@/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -119,18 +141,37 @@ const formData = ref({
   email: '',
   contactNumber: '',
   department: '',
-  uploadedDocuments: []
+  applicationType: '',
+  uploadedDocuments: [],
+  fileURLs: null
 });
 
 const reviewStatus = ref('');
 const reviewReason = ref('');
 const confirmSubmission = ref(false);
 
-let submissionCollection = 'submissions';
+let submissionCollection = '';
 let docRef = null;
 
 const selectedDocumentUrl = ref(null);
 const showViewer = ref(false);
+
+const hasDocuments = computed(() => {
+  if (formData.value.fileURLs) {
+    return Object.values(formData.value.fileURLs).some(url => url);
+  }
+  return formData.value.uploadedDocuments && formData.value.uploadedDocuments.length > 0;
+});
+
+const formatDocumentName = (docType) => {
+  const nameMap = {
+    'guidelines': 'Guidelines',
+    'documents': 'Documents',
+    'request': 'Request Letter',
+    'additional': 'Additional Files'
+  };
+  return nameMap[docType] || docType;
+};
 
 const viewDocument = (url) => {
   if (url) {
@@ -146,17 +187,28 @@ const closeViewer = () => {
   showViewer.value = false;
 };
 
+// This is the part that needs to be updated in your submitForm function
+
 const submitForm = async () => {
   try {
+    if (!docRef) {
+      alert('No submission reference found.');
+      return;
+    }
+    
+    // Update the document with status, reason, reviewedAt AND lastStatusUpdate
     await updateDoc(docRef, {
       status: reviewStatus.value,
-      reason: reviewStatus.value === 'Not Endorsed' ? reviewReason.value : '',
-      reviewedAt: new Date()
+      reason: (reviewStatus.value === 'Rejected' || reviewStatus.value === 'Revision') ? reviewReason.value : '',
+      reviewedAt: new Date(),
+      lastStatusUpdate: new Date() // Add this line to update the status timestamp
     });
-    router.push('/submission-confirmation');
+    
+    alert('Review submitted successfully!');
+    router.push('/adminips');
   } catch (e) {
     console.error('Review submission failed:', e);
-    alert('Failed to submit review.');
+    alert('Failed to submit review: ' + e.message);
   }
 };
 
@@ -167,62 +219,106 @@ const goBack = () => {
 const loadSubmission = async () => {
   const id = route.params.id;
   const storage = getStorage();
-  let folderPath = '';
-  let userId = id;
-
+  
+  // Try loading from submissions first
   docRef = doc(db, 'submissions', id);
   let docSnap = await getDoc(docRef);
 
   if (!docSnap.exists()) {
-    docRef = doc(db, 'competition', id);
+    // If not in submissions, try competitions collection
+    docRef = doc(db, 'competitions', id);
     docSnap = await getDoc(docRef);
+    
     if (!docSnap.exists()) {
-      alert('Submission not found.');
-      return router.push('/adminips');
+      // If not in competitions, try submission_competition collection
+      docRef = doc(db, 'submission_competition', id);
+      docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        alert('Submission not found in any collection.');
+        return router.push('/adminips');
+      } else {
+        submissionCollection = 'submission_competition';
+      }
     } else {
-      submissionCollection = 'competition';
-      folderPath = 'submissions/competition/';
+      submissionCollection = 'competitions';
     }
   } else {
-    folderPath = 'submissions/ipapplication/';
+    submissionCollection = 'submissions';
   }
 
+  console.log(`Submission found in ${submissionCollection} collection`);
+  
   const data = docSnap.data();
-  formData.value.title = data.title || data.fileName || '';
-  formData.value.category = submissionCollection === 'competition' ? 'Competition & Publication' : 'IP Submission';
-  formData.value.fullName = data.fullName || '';
-  formData.value.email = submissionCollection === 'competition' ? data.userEmail || '' : data.email || data.uploaderEmail || '';
-  formData.value.contactNumber = data.contactNumber || '';
-  formData.value.department = data.department || '';
-  userId = data.userId || id;
+  
+  // Handle different document structures based on collection
+  if (submissionCollection === 'competitions' || submissionCollection === 'submission_competition') {
+    // Competition document format (from formStore.js)
+    formData.value = {
+      title: data.title || '',
+      category: data.category || '',
+      fullName: data.fullName || '',
+      email: data.userEmail || data.email || '',
+      contactNumber: data.contactNumber || '',
+      department: data.department || '',
+      applicationType: data.applicationType || 'Competition',
+      fileURLs: data.fileURLs || {}
+    };
+  } else {
+    // Regular submission document format
+    formData.value = {
+      title: data.title || data.fileName || '',
+      category: 'IP Submission',
+      fullName: data.fullName || '',
+      email: data.email || data.uploaderEmail || '',
+      contactNumber: data.contactNumber || '',
+      department: data.department || '',
+      applicationType: data.applicationType || 'IP Protection',
+    };
+    
+    // Handle uploaded documents
+    const uploadedDocs = data.uploadedDocuments || [];
+    if (uploadedDocs.length > 0) {
+      const userId = data.userId || id;
+      const folderPath = 'submissions/ipapplication/';
+      
+      formData.value.uploadedDocuments = await Promise.all(uploadedDocs.map(async (doc) => {
+        if (doc.url) {
+          return {
+            name: doc.name,
+            storedName: doc.storedName || doc.name,
+            url: doc.url
+          };
+        }
 
-  const uploadedDocs = data.uploadedDocuments || [];
-  formData.value.uploadedDocuments = await Promise.all(uploadedDocs.map(async (doc) => {
-    if (doc.url) {
-      return {
-        name: doc.name,
-        storedName: doc.storedName || doc.name,
-        url: doc.url
-      };
+        try {
+          const storedFileName = doc.storedName || doc.name;
+          const documentUrl = await getDownloadURL(storageRef(storage, `${folderPath}${userId}/${storedFileName}`));
+          return {
+            name: doc.name,
+            storedName: storedFileName,
+            url: documentUrl
+          };
+        } catch (e) {
+          console.warn(`Could not fetch URL for ${doc.name}:`, e);
+          return {
+            name: doc.name,
+            storedName: doc.storedName || doc.name,
+            url: null
+          };
+        }
+      }));
     }
-
-    try {
-      const storedFileName = doc.storedName || doc.name;
-      const documentUrl = await getDownloadURL(storageRef(storage, `${folderPath}${userId}/${storedFileName}`));
-      return {
-        name: doc.name,
-        storedName: storedFileName,
-        url: documentUrl
-      };
-    } catch (e) {
-      console.warn(`Could not fetch URL for ${doc.name}:`, e);
-      return {
-        name: doc.name,
-        storedName: doc.storedName || doc.name,
-        url: null
-      };
-    }
-  }));
+  }
+  
+  // Initialize review status if it exists
+  if (data.status) {
+    reviewStatus.value = data.status;
+  }
+  
+  if (data.reason) {
+    reviewReason.value = data.reason;
+  }
 };
 
 onMounted(loadSubmission);

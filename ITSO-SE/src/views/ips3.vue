@@ -225,6 +225,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { useRouter } from 'vue-router';
 import { useFormStore } from '@/stores/formStoreips';
+import { jsPDF } from 'jspdf';
 
 const router = useRouter();
 const form = useFormStore(); // Access the form store
@@ -614,20 +615,64 @@ function drawAnnotations() {
   });
 }
 
-function saveAnnotations() {
-  // Merge PDF and annotation canvas as image and download
-  const pdfC = pdfCanvas.value;
-  const annC = annotationCanvas.value;
-  const merged = document.createElement('canvas');
-  merged.width = pdfC.width;
-  merged.height = pdfC.height;
-  const ctx = merged.getContext('2d');
-  ctx.drawImage(pdfC, 0, 0);
-  ctx.drawImage(annC, 0, 0);
-  const link = document.createElement('a');
-  link.download = `annotated_page${currentPage.value}.png`;
-  link.href = merged.toDataURL();
-  link.click();
+async function saveAnnotations() {
+  try {
+    // Create a new PDF document
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "px",
+      format: [pdfCanvas.value.width, pdfCanvas.value.height]
+    });
+    
+    // Save current page to restore it later
+    const currentPageBackup = currentPage.value;
+    
+    // Iterate through all pages
+    for (let pageNum = 1; pageNum <= totalPages.value; pageNum++) {
+      // Set current page
+      currentPage.value = pageNum;
+      
+      // Need to await page rendering before capturing it
+      await renderPage(pageNum);
+      
+      // Create merged canvas
+      const pdfC = pdfCanvas.value;
+      const annC = annotationCanvas.value;
+      const merged = document.createElement('canvas');
+      merged.width = pdfC.width;
+      merged.height = pdfC.height;
+      const ctx = merged.getContext('2d');
+      
+      // Draw PDF content and annotations
+      ctx.drawImage(pdfC, 0, 0);
+      ctx.drawImage(annC, 0, 0);
+      
+      // Convert to image
+      const imgData = merged.toDataURL('image/png');
+      
+      // Add new page for each page after the first
+      if (pageNum > 1) {
+        pdf.addPage([pdfC.width, pdfC.height]);
+      }
+      
+      // Add image to PDF
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfC.width, pdfC.height);
+      
+      // Progress indicator
+      console.log(`Adding page ${pageNum} of ${totalPages.value}`);
+    }
+    
+    // Save the complete PDF
+    pdf.save('annotated_document.pdf');
+    
+    // Restore original page
+    currentPage.value = currentPageBackup;
+    await renderPage(currentPageBackup);
+    
+  } catch (error) {
+    console.error("Error saving annotations:", error);
+    alert("Error saving the document. Please try again.");
+  }
 }
 
 function onImageSelected(e) {

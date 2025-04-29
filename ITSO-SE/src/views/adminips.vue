@@ -324,8 +324,6 @@ onMounted(async () => {
 });
 </script>
 
-
-
 <style scoped>
 /* Prevent table cell wrap */
 th, td {
