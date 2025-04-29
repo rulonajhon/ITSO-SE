@@ -48,7 +48,7 @@
                   <div class="document-name">Uploaded Documents</div>
                   <div v-if="formData.uploadedFiles.length > 0" v-for="(file, index) in formData.uploadedFiles" :key="index">
                     <div class="document-filename">
-                      {{ file.name }}
+                      {{ getFileName(file) }}
                       <button class="view-btn" @click="viewDocument(file)">View</button>
                     </div>
                   </div>
@@ -158,8 +158,39 @@ const closeModal = () => {
   router.push('/');
 };
 
+// Helper function to get file name regardless of file object type
+const getFileName = (file) => {
+  if (file instanceof File) {
+    return file.name;
+  } else if (file && typeof file === 'object') {
+    // Handle nested file objects
+    if (file.file instanceof File) {
+      return file.file.name;
+    } else if (file.name) {
+      return file.name;
+    }
+  }
+  return 'Unknown file';
+};
+
+// Function to read file as ArrayBuffer - this is crucial for binary files like PDFs
+const readFileAsArrayBuffer = (file) => {
+  return new Promise((resolve, reject) => {
+    if (!(file instanceof Blob)) {
+      reject(new Error(`Not a valid file object: ${getFileName(file)}`));
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+    reader.readAsArrayBuffer(file);
+  });
+};
+
 const goNext = async () => {
   if (!confirmSubmission.value || isLoading.value) return;
+  
   if (!currentUser.value) {
     errorMessage.value = 'Authentication required. Please log in.';
     return;
@@ -174,57 +205,111 @@ const goNext = async () => {
 
     if (!formData.value.uploadedFiles || formData.value.uploadedFiles.length === 0) {
       errorMessage.value = 'No files uploaded. Please upload a PDF file.';
+      isLoading.value = false;
       return;
     }
 
+    // Generate a submission ID for organization in storage
+    const submissionId = `sub_${Date.now()}`;
+
     for (const file of formData.value.uploadedFiles) {
-      const fileExtension = file.name.split('.').pop().toLowerCase();
-      if ((file.type !== 'application/pdf' && fileExtension !== 'pdf') || !file.name) {
-        errorMessage.value = `The file "${file.name}" is not a valid PDF.`;
+      // Get the actual file object which might be nested
+      let actualFile = file;
+      
+      // Handle the case where file is wrapped in a Proxy object with a file property
+      if (file && typeof file === 'object' && file.file instanceof File) {
+        actualFile = file.file;
+        console.log(`Found nested file object: ${actualFile.name}`);
+      } 
+      // If file itself isn't a Blob but has a URL (already uploaded)
+      else if (!(file instanceof Blob) && file && typeof file === 'object' && file.url) {
+        pdfUrls.push({ name: file.name, url: file.url });
+        continue;
+      }
+      // If we still don't have a valid file object
+      else if (!(actualFile instanceof Blob)) {
+        console.warn(`Skipping invalid file object:`, file);
+        continue;
+      }
+
+      // Validate the file using the actual file object
+      const fileExtension = actualFile.name.split('.').pop().toLowerCase();
+      
+      if (fileExtension !== 'pdf') {
+        errorMessage.value = `The file "${actualFile.name}" is not a valid PDF.`;
+        isLoading.value = false;
         return;
       }
-      if (file.size > maxFileSizeMB * 1024 * 1024) {
-        errorMessage.value = `The file "${file.name}" exceeds the ${maxFileSizeMB}MB size limit.`;
+      
+      if (actualFile.size > maxFileSizeMB * 1024 * 1024) {
+        errorMessage.value = `The file "${actualFile.name}" exceeds the ${maxFileSizeMB}MB size limit.`;
+        isLoading.value = false;
         return;
       }
 
-      const sanitizedFileName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '');
-      const filePath = `submissions/ipapplication/${currentUser.value.uid}/${Date.now()}_${sanitizedFileName}`;
-      const fileRef = storageRef(storage, filePath);
+      try {
+        // Read file as ArrayBuffer - this is critical for binary files like PDFs
+        const fileBuffer = await readFileAsArrayBuffer(actualFile);
 
-      const metadata = {
-        contentType: file.type || 'application/octet-stream',
-      };
+        // Prepare sanitized file name and path
+        const sanitizedFileName = actualFile.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '');
+        const filePath = `submissions/ipapplication/${currentUser.value.uid}/${submissionId}/${Date.now()}_${sanitizedFileName}`;
+        const fileRef = storageRef(storage, filePath);
 
-      const uploadTask = uploadBytesResumable(fileRef, file, metadata);
+        // Set proper PDF metadata - explicitly for PDF
+        const metadata = {
+          contentType: 'application/pdf',
+        };
 
-      await new Promise((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-            uploadProgress.value = progress;
-          },
-          (error) => {
-            errorMessage.value = `Error uploading file "${file.name}": ${error.message}`;
-            reject(error);
-          },
-          async () => {
-            try {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              pdfUrls.push({ name: file.name, url: downloadURL });
-              resolve();
-            } catch (error) {
-              errorMessage.value = `Error retrieving URL for file "${file.name}": ${error.message}`;
+        // Upload the file buffer directly
+        const uploadTask = uploadBytesResumable(fileRef, fileBuffer, metadata);
+
+        await new Promise((resolve, reject) => {
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+              uploadProgress.value = progress;
+              console.log(`Upload is ${progress}% done for ${actualFile.name}`);
+            },
+            (error) => {
+              console.error('Error during upload:', error);
+              errorMessage.value = `Error uploading file "${actualFile.name}": ${error.message}`;
               reject(error);
+            },
+            async () => {
+              try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                pdfUrls.push({ name: actualFile.name, url: downloadURL });
+                console.log(`File uploaded successfully: ${actualFile.name} with URL: ${downloadURL}`);
+                resolve();
+              } catch (error) {
+                console.error('Error getting download URL:', error);
+                errorMessage.value = `Error retrieving URL for file "${actualFile.name}": ${error.message}`;
+                reject(error);
+              }
             }
-          }
-        );
-      });
+          );
+        });
+      } catch (error) {
+        console.error('Error reading file:', error);
+        errorMessage.value = `Error reading file "${getFileName(file)}": ${error.message}`;
+        isLoading.value = false;
+        return;
+      }
     }
 
+    // If no files were successfully processed
+    if (pdfUrls.length === 0) {
+      errorMessage.value = 'No valid files to upload. Please add PDF files.';
+      isLoading.value = false;
+      return;
+    }
+
+    // Create the submission data object with all necessary information
     const submissionData = {
       userId: currentUser.value.uid,
+      submissionId: submissionId,
       title: formData.value.title,
       fullName: formData.value.fullName,
       position: formData.value.position,
@@ -237,11 +322,16 @@ const goNext = async () => {
       status: 'Pending'
     };
 
+    // Add the document to Firestore
     await addDoc(collection(db, 'submissions'), submissionData);
+    console.log('Submission added to Firestore successfully with documents:', pdfUrls);
+    
+    // Reset the form and show success modal
     formStore.resetForm();
     showSuccessModal.value = true;
 
   } catch (error) {
+    console.error('Submission error:', error);
     errorMessage.value = `Submission error: ${error.message}`;
   } finally {
     isLoading.value = false;
@@ -249,17 +339,23 @@ const goNext = async () => {
 };
 
 const viewDocument = (file) => {
-  if (file instanceof File) {
-    const fileURL = URL.createObjectURL(file);
-    window.open(fileURL, '_blank');
-  } else if (file.url) {
-    window.open(file.url, '_blank');
-  } else {
-    errorMessage.value = 'Unable to preview this file.';
+  try {
+    if (file instanceof File) {
+      // For locally stored files that haven't been uploaded yet
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL, '_blank');
+    } else if (file.url) {
+      // For files that have already been uploaded and have a URL
+      window.open(file.url, '_blank');
+    } else {
+      errorMessage.value = 'Unable to preview this file.';
+    }
+  } catch (error) {
+    console.error('Error viewing document:', error);
+    errorMessage.value = `Error viewing file: ${error.message}`;
   }
 };
 </script>
-
 
 
 <style scoped>
