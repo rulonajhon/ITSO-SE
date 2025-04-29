@@ -2,6 +2,49 @@
   <div class="min-h-screen bg-pink-50 p-6">
     <h1 class="text-3xl font-bold mb-6 text-center text-pink-700">Submitted Applications</h1>
 
+    <!-- Fixed filter section -->
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="relative">
+        <input
+          type="text"
+          placeholder="Search by title..."
+          v-model="filters.fileName"
+          class="w-full p-2 pl-10 border rounded"
+        />
+        <!-- Search icon would go here -->
+      </div>
+
+      <select 
+        v-model="filters.department" 
+        class="w-full p-2 border rounded"
+      >
+        <option value="">All Departments</option>
+        <option value="CABE">CABE</option>
+        <option value="CAH">CAH</option>
+        <option value="CCS">CCS</option>
+        <option value="CEA">CEA</option>
+        <option value="CHEFS">CHEFS</option>
+        <option value="CMBS">CMBS</option>
+        <option value="CM">CM</option>
+        <option value="CN">CN</option>
+        <option value="CPC">CPC</option>
+        <option value="CTE">CTE</option>
+        <option value="Senior High">Senior High</option>
+        <option value="Junior High">Junior High</option>
+      </select>
+
+      <select 
+        v-model="filters.status" 
+        class="w-full p-2 border rounded"
+      >
+        <option value="">All Statuses</option>
+        <option value="Approved">Approved</option>
+        <option value="Pending">Pending</option>
+        <option value="Rejected">Rejected</option>
+        <option value="Revision">Revision</option>
+      </select>
+    </div>
+
     <div class="overflow-x-auto">
       <table class="w-full table-auto border-collapse bg-white shadow rounded-xl overflow-hidden">
         <thead class="bg-pink-100 text-pink-800">
@@ -70,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { getStorage, ref as storageRef, getDownloadURL, listAll } from 'firebase/storage';
@@ -96,7 +139,7 @@ const fetchProjects = async () => {
   try {
     const projectList = [];
 
-    // Fetch from submissions collection
+    // From submissions (now using title!)
     const submissionSnapshot = await getDocs(collection(db, 'submissions'));
     submissionSnapshot.forEach(doc => {
       const data = doc.data();
@@ -104,14 +147,14 @@ const fetchProjects = async () => {
         id: doc.id,
         source: 'submissions',
         typeOfApplication: data.applicationType || '',
-        fileName: data.title || '',
+        fileName: data.title || '', // <-- CHANGED: using title
         department: data.department || '',
         uploadedAt: data.createdAt || null,
         status: data.status || '',
       });
     });
 
-    // Fetch from competitions collection
+    // From competitions
     const competitionSnapshot = await getDocs(collection(db, 'competitions'));
     competitionSnapshot.forEach(doc => {
       const data = doc.data();
@@ -137,22 +180,20 @@ const fetchStorageFiles = async () => {
   try {
     const allFiles = [];
 
-    // Fetch files from the submissions folder (ipapplication)
-    const submissionsFolder = storageRef(storage, 'submissions/ipapplication/');
+    const submissionsFolder = storageRef(storage, 'submissions/');
     const submissionsList = await listAll(submissionsFolder);
 
     for (const item of submissionsList.items) {
       const url = await getDownloadURL(item);
-      allFiles.push({ name: item.name, url, folder: 'submissions/ipapplication' });
+      allFiles.push({ name: item.name, url, folder: 'submissions' });
     }
 
-    // Fetch files from the competition folder
-    const competitionFolder = storageRef(storage, 'submissions/competition/');
+    const competitionFolder = storageRef(storage, 'submission_competition/');
     const competitionList = await listAll(competitionFolder);
 
     for (const item of competitionList.items) {
       const url = await getDownloadURL(item);
-      allFiles.push({ name: item.name, url, folder: 'submissions/competition' });
+      allFiles.push({ name: item.name, url, folder: 'submission_competition' });
     }
 
     // Match file URLs to projects
@@ -173,7 +214,9 @@ const updateStatus = async (project) => {
     let projectRef;
 
     // Determine which collection the project belongs to and update the status
-    if (project.source === 'submissions') {
+    if (project.source === 'IP_Protection') {
+      projectRef = doc(db, 'IP_Protection', project.id);
+    } else if (project.source === 'submissions') {
       projectRef = doc(db, 'submissions', project.id);
     } else if (project.source === 'competitions') {
       projectRef = doc(db, 'competitions', project.id);
@@ -199,15 +242,34 @@ const getStatusBackgroundClass = status => {
   return 'bg-gray-500'; // Default gray if none matches
 };
 
+// Text color class (keep for any other uses)
+const getStatusClass = status => {
+  if (status === 'Approved') return 'text-green-500';
+  if (status === 'Pending') return 'text-yellow-500'; 
+  if (status === 'Rejected') return 'text-red-500';
+  if (status === 'Revision') return 'text-orange-500';
+  return 'text-gray-500';
+};
+
+// Reset to page 1 when filters change
+watch(filters, () => {
+  currentPage.value = 1;
+}, { deep: true });
+
 // Filtered Projects (with search and filtering)
 const filteredProjects = computed(() => {
   return projects.value
     .filter(project => {
-      const matchesFileName = !filters.value.fileName || project.fileName?.toLowerCase().includes(filters.value.fileName.toLowerCase());
+      // Check if fileName exists and convert to lowercase for case-insensitive comparison
+      const projectFileName = project.fileName?.toLowerCase() || '';
+      const searchQuery = filters.value.fileName.toLowerCase();
+      
+      const matchesFileName = !filters.value.fileName || projectFileName.includes(searchQuery);
       const matchesType = !filters.value.typeOfApplication || project.typeOfApplication === filters.value.typeOfApplication;
       const matchesDepartment = !filters.value.department || project.department === filters.value.department;
       const matchesDate = !filters.value.date || (project.uploadedAt && new Date(project.uploadedAt.seconds * 1000).toISOString().split('T')[0] === filters.value.date);
       const matchesStatus = !filters.value.status || project.status === filters.value.status;
+      
       return matchesFileName && matchesType && matchesDepartment && matchesDate && matchesStatus;
     })
     .sort((a, b) => {
@@ -226,7 +288,7 @@ const filteredProjects = computed(() => {
 });
 
 // Pagination Methods
-const totalPages = computed(() => Math.ceil(filteredProjects.value.length / rowsPerPage));
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredProjects.value.length / rowsPerPage)));
 
 const paginatedProjects = computed(() => {
   const start = (currentPage.value - 1) * rowsPerPage;
@@ -234,17 +296,26 @@ const paginatedProjects = computed(() => {
   return filteredProjects.value.slice(start, end);
 });
 
+const sortBy = key => {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortOrder.value = 'asc';
+  }
+};
+
+const formatDate = timestamp => {
+  if (!timestamp || !timestamp.seconds) return 'N/A';
+  return new Date(timestamp.seconds * 1000).toLocaleDateString();
+};
+
 const prevPage = () => {
   if (currentPage.value > 1) currentPage.value--;
 };
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) currentPage.value++;
-};
-
-const formatDate = timestamp => {
-  if (!timestamp || !timestamp.seconds) return 'N/A';
-  return new Date(timestamp.seconds * 1000).toLocaleDateString();
 };
 
 onMounted(async () => {
@@ -262,6 +333,7 @@ th, td {
 }
 
 .pagination{
+    
     display: flex;
     justify-content: center;
 }
