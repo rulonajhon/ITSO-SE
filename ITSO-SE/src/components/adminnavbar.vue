@@ -24,7 +24,7 @@
                     :key="notif.id"
                     class="notif-item"
                     :class="{ unread: !notif.read }"
-                    @click="goToDetail(notif)"
+                    @click="goToDetail(notif.id)"
                   >
                     <div class="notif-avatar">
                       <i class="pi pi-user"></i>
@@ -154,24 +154,10 @@ const unreadCount = computed(() =>
 
 const limitedNotifications = computed(() => notifications.value.slice(0, 10));
 
-// Updated goToDetail function to handle different notification types
-const goToDetail = async (notif) => {
-  try {
-    // Determine which collection to use based on notification type
-    const collectionName = notif.type === 'Competition' ? 'competitions' : 'submissions';
-    
-    // Update the read status in the correct collection
-    const notifRef = doc(db, collectionName, notif.id);
-    await updateDoc(notifRef, { read: true });
-    
-    // Redirect to the appropriate page based on type
-    router.push(`/adminips/${notif.id}`);
-    
-    // Close the notification panel
-    notificationOverlay.value.hide();
-  } catch (error) {
-    console.error("Error navigating to notification detail:", error);
-  }
+const goToDetail = async (id) => {
+  const notifRef = doc(db, 'IP_Protection', id);
+  await updateDoc(notifRef, { read: true });
+  router.push(`/adminips/${id}`);
 };
 
 const relativeTime = (timestamp) => {
@@ -201,6 +187,8 @@ const relativeTime = (timestamp) => {
   return new Date(timeMillis).toLocaleDateString(); // fallback to date if older than 1 month
 };
 
+
+
 onMounted(() => {
   onAuthStateChanged(auth, (currentUser) => {
     user.value = currentUser;
@@ -208,6 +196,7 @@ onMounted(() => {
   fetchNotifications();
 });
 </script>
+
 
 <style scoped>
 .menubar-container {

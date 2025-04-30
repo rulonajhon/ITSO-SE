@@ -63,6 +63,7 @@
                     <div class="document-filename">
                       <button class="view-btn" @click="viewDocument(url)">View</button>
                       <a :href="url" class="download-btn" download>Download</a>
+                      <button v-if="formData.status.toLowerCase() === 'revision'" class="change-btn" @click="changeDocument(docType)">Change</button>
                     </div>
                   </div>
                 </div>
@@ -78,6 +79,7 @@
                     <div v-if="document.url" class="document-filename">
                       <button class="view-btn" @click="viewDocument(document.url)">View</button>
                       <a :href="document.url" class="download-btn" download>Download</a>
+                      <button v-if="formData.status.toLowerCase() === 'revision'" class="change-btn" @click="changeDocument(index)">Change</button>
                     </div>
                     <div v-else class="document-missing-text">Document not uploaded</div>
                   </div>
@@ -161,6 +163,36 @@
         <button class="close-btn" @click="closeViewer">Close</button>
       </div>
     </div>
+
+    <!-- Document Change Modal -->
+    <div v-if="showChangeModal" class="modal-overlay" @click.self="closeChangeModal">
+      <div class="modal-content change-document-modal">
+        <h3>Upload Revised Document</h3>
+        <div class="file-upload-container">
+          <input 
+            type="file" 
+            ref="fileInput" 
+            @change="handleFileSelected" 
+            class="file-input"
+            accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+          />
+          <div class="file-upload-info">
+            <p v-if="selectedFile">Selected file: {{ selectedFile.name }}</p>
+            <p v-else>No file selected</p>
+          </div>
+        </div>
+        <div class="change-modal-buttons">
+          <button class="btn btn-cancel" @click="closeChangeModal">Cancel</button>
+          <button 
+            class="btn btn-upload" 
+            :disabled="!selectedFile || isUploading" 
+            @click="uploadRevisedDocument"
+          >
+            {{ isUploading ? 'Uploading...' : 'Upload' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -169,7 +201,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { db, auth } from '@/firebase';
 import { doc, getDoc, updateDoc, collection, addDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref as storageRef, getDownloadURL, uploadBytesResumable } from 'firebase/storage';
 
 const route = useRoute();
 const router = useRouter();
@@ -195,6 +227,14 @@ const comments = ref([]);
 
 const selectedDocumentUrl = ref(null);
 const showViewer = ref(false);
+
+// For document change functionality
+const showChangeModal = ref(false);
+const selectedFile = ref(null);
+const selectedDocIndex = ref(null);
+const selectedDocType = ref(null);
+const isUploading = ref(false);
+const fileInput = ref(null);
 
 const statusClass = computed(() => {
   const status = (formData.value.status || '').toLowerCase();
@@ -269,6 +309,149 @@ const viewDocument = (url) => {
 const closeViewer = () => {
   selectedDocumentUrl.value = null;
   showViewer.value = false;
+};
+
+// Document change functionality
+const changeDocument = (docIdentifier) => {
+  // Reset file input
+  selectedFile.value = null;
+  
+  if (typeof docIdentifier === 'string') {
+    // Handling fileURLs case
+    selectedDocType.value = docIdentifier;
+    selectedDocIndex.value = null;
+  } else {
+    // Handling uploadedDocuments case
+    selectedDocIndex.value = docIdentifier;
+    selectedDocType.value = null;
+  }
+  
+  showChangeModal.value = true;
+};
+
+const handleFileSelected = (event) => {
+  const files = event.target.files;
+  if (files.length > 0) {
+    selectedFile.value = files[0];
+  }
+};
+
+const closeChangeModal = () => {
+  showChangeModal.value = false;
+  selectedFile.value = null;
+  selectedDocIndex.value = null;
+  selectedDocType.value = null;
+  
+  // Reset the file input
+  if (fileInput.value) {
+    fileInput.value.value = '';
+  }
+};
+
+const uploadRevisedDocument = async () => {
+  if (!selectedFile.value) return;
+  
+  const storage = getStorage();
+  const submissionId = route.params.id;
+  const userId = auth.currentUser?.uid || submissionId;
+  let folderPath = '';
+  let fileName = '';
+  
+  isUploading.value = true;
+  
+  try {
+    // Determine storage path based on collection
+    if (submissionCollection === 'submissions') {
+      folderPath = `submissions/ipapplication/${userId}/`;
+    } else if (submissionCollection === 'competitions' || submissionCollection === 'submission_competition') {
+      folderPath = `competitions/${userId}/`;
+    }
+    
+    // Generate unique filename with timestamp
+    const timestamp = new Date().getTime();
+    const originalName = selectedFile.value.name;
+    const extension = originalName.split('.').pop();
+    fileName = `${originalName.split('.')[0]}_rev_${timestamp}.${extension}`;
+    
+    const fileRef = storageRef(storage, `${folderPath}${fileName}`);
+    
+    // Upload file
+    const uploadTask = uploadBytesResumable(fileRef, selectedFile.value);
+    
+    // Wait for upload to complete
+    await new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          // Handle progress if needed
+        },
+        (error) => {
+          reject(error);
+        },
+        () => {
+          resolve();
+        }
+      );
+    });
+    
+    // Get download URL
+    const downloadURL = await getDownloadURL(fileRef);
+    
+    // Update document reference in Firestore
+    if (selectedDocType.value !== null) {
+      // For fileURLs structure
+      const updateData = {};
+      updateData[`fileURLs.${selectedDocType.value}`] = downloadURL;
+      
+      await updateDoc(docRef, updateData);
+    } else if (selectedDocIndex.value !== null) {
+      // For uploadedDocuments array
+      const updatedDocs = [...formData.value.uploadedDocuments];
+      updatedDocs[selectedDocIndex.value] = {
+        ...updatedDocs[selectedDocIndex.value],
+        url: downloadURL,
+        storedName: fileName,
+        lastUpdated: new Date()
+      };
+      
+      await updateDoc(docRef, { uploadedDocuments: updatedDocs });
+    }
+    
+    // Update document status if needed
+    await updateDoc(docRef, {
+      lastUpdated: new Date(),
+      hasNewDocuments: true
+    });
+    
+    // Add a system comment about the document change
+    await addDoc(collection(db, 'comments'), {
+      submissionId: submissionId,
+      collectionName: submissionCollection,
+      text: `Document updated: ${selectedFile.value.name}`,
+      userId: userId,
+      userEmail: auth.currentUser?.email || formData.value.email,
+      isAdmin: false,
+      isSystem: true,
+      timestamp: new Date()
+    });
+    
+    // Update the local state
+    if (selectedDocType.value !== null && formData.value.fileURLs) {
+      formData.value.fileURLs[selectedDocType.value] = downloadURL;
+    } else if (selectedDocIndex.value !== null && formData.value.uploadedDocuments) {
+      formData.value.uploadedDocuments[selectedDocIndex.value].url = downloadURL;
+      formData.value.uploadedDocuments[selectedDocIndex.value].storedName = fileName;
+    }
+    
+    alert('Document successfully updated!');
+    closeChangeModal();
+    
+  } catch (error) {
+    console.error('Error uploading revised document:', error);
+    alert('Failed to upload document: ' + error.message);
+  } finally {
+    isUploading.value = false;
+  }
 };
 
 const submitComment = async () => {
@@ -438,6 +621,76 @@ onMounted(() => {
   loadComments();
 });
 </script>
+
+<style scoped>
+/* Add these new styles for the change button and modal */
+.change-btn {
+  background-color: #ffa500;
+  color: white;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: 5px;
+}
+
+.change-btn:hover {
+  background-color: #ff8c00;
+}
+
+.change-document-modal {
+  width: 500px;
+  max-width: 90%;
+  padding: 20px;
+}
+
+.change-document-modal h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.file-upload-container {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 2px dashed #ccc;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.file-input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.file-upload-info {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.change-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-cancel {
+  background-color: #ccc;
+  color: #333;
+}
+
+.btn-upload {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-upload:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+}
+</style>
   
 <style scoped>
 .modal-overlay {
