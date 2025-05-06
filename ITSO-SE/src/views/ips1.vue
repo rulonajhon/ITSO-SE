@@ -44,11 +44,19 @@
                 placeholder="First Name M.I. Last Name"
                 required
               />
-            </div>            
+            </div>
 
             <div class="form-group">
               <label>Position</label>
-              <input type="text" v-model="form.position" required />
+              <div class="select-wrapper">
+                <select v-model="form.position" required>
+                  <option value="" disabled>Select Position</option>
+                  <option value="Student">Student</option>
+                  <option value="Faculty">Faculty</option>
+                  <option value="Visitor">Visitor</option>
+                </select>
+                <div class="select-arrow">▼</div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -64,30 +72,43 @@
 
               <div class="form-group half">
                 <label>Department</label>
-                <div class="visitor-checkbox">
-                  <label>
-                    <input type="checkbox" v-model="form.isVisitor" />
-                    I am a Visitor
-                  </label>
-                </div>
                 <div class="select-wrapper">
-                  <select v-model="form.department" :disabled="form.isVisitor" required>
+                  <select
+                    v-model="form.department"
+                    :disabled="form.position === 'Visitor'"
+                    required
+                  >
                     <option value="" disabled>Select Department</option>
                     <option value="Elementary">Elementary</option>
                     <option value="Junior Highschool">Junior Highschool</option>
                     <option value="Senior Highschool">Senior Highschool</option>
-                    <option value="Colleges of Accounting and Business Education">Colleges of Accounting and Business Education</option>
-                    <option value="Colleges of Arts and Humanities">Colleges of Arts and Humanities</option>
-                    <option value="Colleges of Computer Studies">Colleges of Computer Studies</option>
-                    <option value="Colleges of Engineering and Architecture">Colleges of Engineering and Architecture</option>
-                    <option value="Colleges of Human Environment Science and Food Studies">Colleges of Human Environment Science and Food Studies</option>
-                    <option value="Colleges of Medical and Biological Sciences">Colleges of Medical and Biological Sciences</option>
+                    <option value="Colleges of Accounting and Business Education">
+                      Colleges of Accounting and Business Education
+                    </option>
+                    <option value="Colleges of Arts and Humanities">
+                      Colleges of Arts and Humanities
+                    </option>
+                    <option value="Colleges of Computer Studies">
+                      Colleges of Computer Studies
+                    </option>
+                    <option value="Colleges of Engineering and Architecture">
+                      Colleges of Engineering and Architecture
+                    </option>
+                    <option value="Colleges of Human Environment Science and Food Studies">
+                      Colleges of Human Environment Science and Food Studies
+                    </option>
+                    <option value="Colleges of Medical and Biological Sciences">
+                      Colleges of Medical and Biological Sciences
+                    </option>
                     <option value="Colleges of Music">Colleges of Music</option>
                     <option value="Colleges of Nursing">Colleges of Nursing</option>
-                    <option value="Colleges of Pharmacy and Chemistry">Colleges of Pharmacy and Chemistry</option>
-                    <option value="Colleges of Teacher Education">Colleges of Teacher Education</option>
+                    <option value="Colleges of Pharmacy and Chemistry">
+                      Colleges of Pharmacy and Chemistry
+                    </option>
+                    <option value="Colleges of Teacher Education">
+                      Colleges of Teacher Education
+                    </option>
                   </select>
-                  
                   <div class="select-arrow">▼</div>
                 </div>
               </div>
@@ -121,18 +142,19 @@ const goBack = () => {
   router.push('/disclaimer');
 };
 
-// Automatically sync visitor checkbox with department
+// Automatically sync position with department
 watch(
-  () => form.isVisitor,
-  (isVisitor) => {
-    if (isVisitor) {
+  () => form.position,
+  (position) => {
+    if (position === 'Visitor') {
       form.department = 'Visitor';
-    } else {
+    } else if (form.department === 'Visitor') {
       form.department = '';
     }
   }
 );
 </script>
+
 
 <style scoped>
 .hint-text {

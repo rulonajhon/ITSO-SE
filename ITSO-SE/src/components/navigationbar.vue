@@ -83,7 +83,7 @@
 
           <!-- Services Dropdown -->
           <div class="relative">
-            <i class="pi pi-bars services-icon" @click="toggleServiceMenu"></i>
+            
             <OverlayPanel ref="serviceOverlay">
               <ul class="dropdown-menu">
                 <li @click="navigateTo('/ipsdisclaimer')" class="dropdown-item">IP Protection Application</li>

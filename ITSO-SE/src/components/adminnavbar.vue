@@ -198,7 +198,7 @@ const goToDetail = async (id, type, submissionId) => {
   } else {
     const notifRef = doc(db, type === 'IP Protection' ? 'submissions' : 'competitions', id);
     await updateDoc(notifRef, { read: true });
-    router.push(`/adminips/${id}`);
+    router.push(`/adminviewips/${id}`);
   }
 };
 
