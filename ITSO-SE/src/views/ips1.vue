@@ -32,17 +32,22 @@
             <h2 class="section-title">1. Applicant Information</h2>
 
             <div class="form-group">
-              <label>Title of Research</label> <!-- ✅ NEW FIELD -->
+              <label>Title of Research</label>
               <input type="text" v-model="form.title" required />
             </div>
 
             <div class="form-group">
               <label>Full Name</label>
-              <input type="text" v-model="form.fullName" required />
-            </div>
+              <input
+                type="text"
+                v-model="form.fullName"
+                placeholder="First Name M.I. Last Name"
+                required
+              />
+            </div>            
 
             <div class="form-group">
-              <label>Position</label> <!-- ✅ CHANGED -->
+              <label>Position</label>
               <input type="text" v-model="form.position" required />
             </div>
 
@@ -59,30 +64,37 @@
 
               <div class="form-group half">
                 <label>Department</label>
+                <div class="visitor-checkbox">
+                  <label>
+                    <input type="checkbox" v-model="form.isVisitor" />
+                    I am a Visitor
+                  </label>
+                </div>
                 <div class="select-wrapper">
-                  <select v-model="form.department" required>
+                  <select v-model="form.department" :disabled="form.isVisitor" required>
                     <option value="" disabled>Select Department</option>
                     <option value="Elementary">Elementary</option>
                     <option value="Junior Highschool">Junior Highschool</option>
                     <option value="Senior Highschool">Senior Highschool</option>
-                    <option value="College of Accounting and Business Education">College of Accounting and Business Education</option>
-                    <option value="College of Arts and Humanities">College of Arts and Humanities</option>
-                    <option value="College of Computer Studies">College of Computer Studies</option>
-                    <option value="College of Engineering and Architecture">College of Engineering and Architecture</option>
-                    <option value="College of Human Environment Science and Food Studies">College of Human Environment Science and Food Studies</option>
-                    <option value="College of Medical and Biological Sciences">College of Medical and Biological Sciences</option>
-                    <option value="College of Music">College of Music</option>
-                    <option value="College of Nursing">College of Nursing</option>
-                    <option value="College of Pharmacy and Chemistry">College of Pharmacy and Chemistry</option>
-                    <option value="College of Teacher Education">College of Teacher Education</option>
+                    <option value="Colleges of Accounting and Business Education">Colleges of Accounting and Business Education</option>
+                    <option value="Colleges of Arts and Humanities">Colleges of Arts and Humanities</option>
+                    <option value="Colleges of Computer Studies">Colleges of Computer Studies</option>
+                    <option value="Colleges of Engineering and Architecture">Colleges of Engineering and Architecture</option>
+                    <option value="Colleges of Human Environment Science and Food Studies">Colleges of Human Environment Science and Food Studies</option>
+                    <option value="Colleges of Medical and Biological Sciences">Colleges of Medical and Biological Sciences</option>
+                    <option value="Colleges of Music">Colleges of Music</option>
+                    <option value="Colleges of Nursing">Colleges of Nursing</option>
+                    <option value="Colleges of Pharmacy and Chemistry">Colleges of Pharmacy and Chemistry</option>
+                    <option value="Colleges of Teacher Education">Colleges of Teacher Education</option>
                   </select>
+                  
                   <div class="select-arrow">▼</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Fixed buttons -->
+          <!-- Buttons -->
           <div class="form-buttons">
             <button type="button" class="btn btn-back" @click="goBack">Back</button>
             <button type="submit" class="btn btn-next">Next</button>
@@ -94,6 +106,7 @@
 </template>
 
 <script setup>
+import { watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFormStore } from '@/stores/formStoreips';
 
@@ -108,10 +121,32 @@ const goBack = () => {
   router.push('/disclaimer');
 };
 
-const saveDraft = () => {
-  console.log('Saving draft...');
-};
+// Automatically sync visitor checkbox with department
+watch(
+  () => form.isVisitor,
+  (isVisitor) => {
+    if (isVisitor) {
+      form.department = 'Visitor';
+    } else {
+      form.department = '';
+    }
+  }
+);
 </script>
+
+<style scoped>
+.hint-text {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.visitor-checkbox {
+  margin-bottom: 8px;
+}
+</style>
+
 
 
 <style>

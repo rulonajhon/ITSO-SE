@@ -36,14 +36,12 @@
           </div>
 
           <div class="input-group">
-            <label for="email">Email Address (UIC Email Only)</label>
+            <label for="email">Email Address</label>
             <input 
               id="email"
               type="email" 
               v-model="formData.email" 
               placeholder="Please fill out this field."
-              pattern=".*@uic\.edu\.ph"
-              title="Please use your UIC email address"
               required 
             />
           </div>
@@ -76,7 +74,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { auth, db } from '../firebase'; // Import Firebase services
+import { auth, db } from '../firebase'; // Firebase config
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -94,25 +92,18 @@ const loading = ref(false);
 
 const handleSignup = async () => {
   errorMessage.value = '';
-  
-  if (!formData.value.email.endsWith('@uic.edu.ph')) {
-    errorMessage.value = 'Please use your UIC email address.';
-    return;
-  }
 
   try {
     loading.value = true;
-    
-    // Create user with Firebase Authentication
+
     const userCredential = await createUserWithEmailAndPassword(
-      auth, 
-      formData.value.email, 
+      auth,
+      formData.value.email,
       formData.value.password
     );
 
     const user = userCredential.user;
 
-    // Store user details in Firestore
     await setDoc(doc(db, 'users', user.uid), {
       fullName: formData.value.fullName,
       username: formData.value.username,
@@ -120,7 +111,6 @@ const handleSignup = async () => {
       createdAt: new Date()
     });
 
-    // Redirect to login after successful signup
     router.push('/login');
   } catch (error) {
     errorMessage.value = error.message;

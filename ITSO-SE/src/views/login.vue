@@ -15,7 +15,7 @@
       <div class="form-container">
         <form @submit.prevent="login">
           <div class="input-group">
-            <label for="email">UIC Email</label>
+            <label for="email">Email</label>
             <input 
               id="email" 
               type="email" 

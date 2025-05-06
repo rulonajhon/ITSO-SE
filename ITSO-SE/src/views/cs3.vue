@@ -160,19 +160,21 @@ const getDepartmentLabel = (dept) => {
     elementary: 'Elementary',
     juniorHighschool: 'Junior Highschool',
     seniorHighschool: 'Senior Highschool',
-    engineering: 'College of Engineering and Architecture',
-    science: 'College of Arts and Humanities',
-    arts: 'College of Computer Studies',
-    business: 'College of Accounting and Business Education',
-    human_env: 'College of Human Environment Science and Food Studies',
-    medical: 'College of Medical and Biological Sciences',
-    music: 'College of Music',
-    nursing: 'College of Nursing',
-    pharmacy: 'College of Pharmacy and Chemistry',
-    education: 'College of Teacher Education'
+    engineering: 'Colleges of Engineering and Architecture',
+    science: 'Colleges of Arts and Humanities',
+    arts: 'Colleges of Computer Studies',
+    business: 'Colleges of Accounting and Business Education',
+    human_env: 'Colleges of Human Environment Science and Food Studies',
+    medical: 'Colleges of Medical and Biological Sciences',
+    music: 'Colleges of Music',
+    nursing: 'Colleges of Nursing',
+    pharmacy: 'Colleges of Pharmacy and Chemistry',
+    education: 'Colleges of Teacher Education',
+    Visitor: 'Visitor' // ✅ Add this line
   };
   return departments[dept] || 'Unknown Department';
 };
+
 
 // Helper: get document label
 const getFileLabel = (key) => {

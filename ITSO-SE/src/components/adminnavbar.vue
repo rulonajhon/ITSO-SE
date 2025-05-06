@@ -24,14 +24,19 @@
                     :key="notif.id"
                     class="notif-item"
                     :class="{ unread: !notif.read }"
-                    @click="goToDetail(notif.id)"
+                    @click="goToDetail(notif.id, notif.type, notif.submissionId)"
                   >
                     <div class="notif-avatar">
                       <i class="pi pi-user"></i>
                     </div>
                     <div class="notif-content">
                       <div class="notif-title">
-                        <strong>{{ notif.uploaderName }}</strong> uploaded <strong>{{ notif.title }}</strong>
+                        <template v-if="notif.type === 'Comment'">
+                          <strong>{{ notif.uploaderName }}</strong> commented on <strong>{{ notif.title }}</strong>: "{{ notif.commentText }}"
+                        </template>
+                        <template v-else>
+                          <strong>{{ notif.uploaderName }}</strong> uploaded <strong>{{ notif.title }}</strong>
+                        </template>
                       </div>
                       <!-- Display the type (application type) -->
                       <div class="notif-meta">
@@ -102,8 +107,10 @@ const logout = async () => {
 
 // ✨ Fetching more detailed notifications (like in adminips)
 const fetchNotifications = async () => {
+  // Existing code for submissions and competitions
   const submissionsCollection = collection(db, 'submissions');
   const competitionsCollection = collection(db, 'competitions');
+  const notificationsCollection = collection(db, 'notifications'); // Add this line
 
   onSnapshot(submissionsCollection, async (submissionSnapshot) => {
     const submissionNotifs = await Promise.all(
@@ -112,7 +119,7 @@ const fetchNotifications = async () => {
         return {
           id: docSnap.id,
           title: data.title || 'Untitled Submission',
-          uploadedAt: data.createdAt || null, // ✅ Use createdAt here
+          uploadedAt: data.createdAt || null,
           uploaderName: data.fullName || 'Unknown',
           read: data.read || false,
           type: 'IP Protection',
@@ -127,7 +134,7 @@ const fetchNotifications = async () => {
           return {
             id: docSnap.id,
             title: data.title || 'Untitled Competition',
-            uploadedAt: data.submittedAt || null, // ✅ Use submittedAt here
+            uploadedAt: data.submittedAt || null,
             uploaderName: data.fullName || 'Unknown',
             read: data.read || false,
             type: 'Competition',
@@ -135,13 +142,39 @@ const fetchNotifications = async () => {
         })
       );
 
-      // ✅ Combine and sort
-      const allNotifs = [...submissionNotifs, ...competitionNotifs];
-      notifications.value = allNotifs.sort((a, b) => {
-        if (!a.uploadedAt || !b.uploadedAt) return 0;
-        const aTime = a.uploadedAt.seconds ? a.uploadedAt.seconds : a.uploadedAt.toMillis() / 1000;
-        const bTime = b.uploadedAt.seconds ? b.uploadedAt.seconds : b.uploadedAt.toMillis() / 1000;
-        return bTime - aTime;
+      // ADD THIS: Listen for comment notifications
+      onSnapshot(notificationsCollection, async (notificationSnapshot) => {
+        const commentNotifs = await Promise.all(
+          notificationSnapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+            if (data.type === 'comment') {
+              return {
+                id: docSnap.id,
+                title: data.title || 'Untitled Submission',
+                uploadedAt: data.uploadedAt || data.createdAt || null,
+                uploaderName: data.uploaderName || 'Unknown',
+                read: data.read || false,
+                type: 'Comment',
+                submissionId: data.submissionId,
+                collectionName: data.collectionName,
+                commentText: data.commentText
+              };
+            }
+            return null;
+          })
+        );
+
+        // Filter out null values and combine all notifications
+        const filteredCommentNotifs = commentNotifs.filter(notif => notif !== null);
+        const allNotifs = [...submissionNotifs, ...competitionNotifs, ...filteredCommentNotifs];
+        
+        // Sort by timestamp
+        notifications.value = allNotifs.sort((a, b) => {
+          if (!a.uploadedAt || !b.uploadedAt) return 0;
+          const aTime = a.uploadedAt.seconds ? a.uploadedAt.seconds : a.uploadedAt.toMillis ? a.uploadedAt.toMillis() / 1000 : 0;
+          const bTime = b.uploadedAt.seconds ? b.uploadedAt.seconds : b.uploadedAt.toMillis ? b.uploadedAt.toMillis() / 1000 : 0;
+          return bTime - aTime;
+        });
       });
     });
   });
@@ -154,10 +187,19 @@ const unreadCount = computed(() =>
 
 const limitedNotifications = computed(() => notifications.value.slice(0, 10));
 
-const goToDetail = async (id) => {
-  const notifRef = doc(db, 'IP_Protection', id);
-  await updateDoc(notifRef, { read: true });
-  router.push(`/adminips/${id}`);
+const goToDetail = async (id, type, submissionId) => {
+  if (type === 'Comment') {
+    // Update the notification read status
+    const notifRef = doc(db, 'notifications', id);
+    await updateDoc(notifRef, { read: true });
+    
+    // Navigate to the submission detail page with the related submission ID
+    router.push(`/adminips/${submissionId}`);
+  } else {
+    const notifRef = doc(db, type === 'IP Protection' ? 'submissions' : 'competitions', id);
+    await updateDoc(notifRef, { read: true });
+    router.push(`/adminips/${id}`);
+  }
 };
 
 const relativeTime = (timestamp) => {

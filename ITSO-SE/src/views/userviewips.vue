@@ -483,6 +483,19 @@ const submitComment = async () => {
       lastCommentDate: new Date()
     });
     
+    // ADD THIS: Create a notification for admin
+    await addDoc(collection(db, 'notifications'), {
+      type: 'comment',
+      submissionId: route.params.id,
+      collectionName: submissionCollection,
+      commentText: userComment.value.trim().substring(0, 50) + (userComment.value.trim().length > 50 ? '...' : ''),
+      uploaderName: formData.value.fullName || currentUser.displayName || currentUser.email,
+      uploadedAt: new Date(),
+      title: formData.value.title || 'Untitled Submission',
+      read: false,
+      createdAt: new Date()
+    });
+    
     userComment.value = '';
     
   } catch (e) {

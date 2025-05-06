@@ -66,7 +66,12 @@
 
               <div class="form-group">
                 <label>Full Name</label>
-                <input type="text" v-model="formData.fullName" required />
+                <input
+                  type="text"
+                  v-model="formData.fullName"
+                  placeholder="First Name M.I. Last Name"
+                  required
+                />
                 <span v-if="errors.fullName" class="error-message">{{ errors.fullName }}</span>
               </div>
 
@@ -85,22 +90,32 @@
 
                 <div class="form-group half">
                   <label>Department</label>
+
+                  <!-- Visitor Checkbox -->
+                  <div class="visitor-checkbox">
+                    <label>
+                      <input type="checkbox" v-model="formData.isVisitor" />
+                      I am a Visitor
+                    </label>
+                  </div>
+
+                  <!-- Department Dropdown -->
                   <div class="select-wrapper">
-                    <select v-model="formData.department" required>
-                      <option value="" disabled selected>Select Department</option>
-                      <option value="elementary">Elementary</option>
-                      <option value="juniorHighschool">Junior Highschool</option>
-                      <option value="seniorHighschool">Senior Highschool</option>
-                      <option value="engineering">College of Accounting and Business Education</option>
-                      <option value="science">College of Arts and Humanities</option>
-                      <option value="arts">College of Computer Studies</option>
-                      <option value="business">College of Engineering and Architecture</option>
-                      <option value="human_env">College of Human Environment Science and Food Studies</option>
-                      <option value="medical">College of Medical and Biological Sciences</option>
-                      <option value="music">College of Music</option>
-                      <option value="nursing">College of Nursing</option>
-                      <option value="pharmacy">College of Pharmacy and Chemistry</option>
-                      <option value="education">College of Teacher Education</option>
+                    <select v-model="formData.department" :disabled="formData.isVisitor" required>
+                      <option value="" disabled>Select Department</option>
+                      <option value="Elementary">Elementary</option>
+                      <option value="Junior Highschool">Junior Highschool</option>
+                      <option value="Senior Highschool">Senior Highschool</option>
+                      <option value="Colleges of Accounting and Business Education">Colleges of Accounting and Business Education</option>
+                      <option value="Colleges of Arts and Humanities">Colleges of Arts and Humanities</option>
+                      <option value="Colleges of Computer Studies">Colleges of Computer Studies</option>
+                      <option value="Colleges of Engineering and Architecture">Colleges of Engineering and Architecture</option>
+                      <option value="Colleges of Human Environment Science and Food Studies">Colleges of Human Environment Science and Food Studies</option>
+                      <option value="Colleges of Medical and Biological Sciences">Colleges of Medical and Biological Sciences</option>
+                      <option value="Colleges of Music">Colleges of Music</option>
+                      <option value="Colleges of Nursing">Colleges of Nursing</option>
+                      <option value="Colleges of Pharmacy and Chemistry">Colleges of Pharmacy and Chemistry</option>
+                      <option value="Colleges of Teacher Education">Colleges of Teacher Education</option>
                     </select>
                     <div class="select-arrow">▼</div>
                   </div>
@@ -122,7 +137,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { auth } from '@/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -137,19 +152,18 @@ const errors = ref({});
 onAuthStateChanged(auth, (currentUser) => {
   if (currentUser) {
     user.value = currentUser;
-    console.log('CS1: User authenticated', { 
-      uid: currentUser.uid, 
-      email: currentUser.email 
+    console.log('CS1: User authenticated', {
+      uid: currentUser.uid,
+      email: currentUser.email
     });
-    formStore.updateCurrentUser(); // Update user in store
+    formStore.updateCurrentUser();
   } else {
     console.log('CS1: No user authenticated, redirecting to login');
-    // Redirect to login if not authenticated
     router.push('/login');
   }
 });
 
-// Form Data with Default Values
+// Form Data
 const formData = ref({
   title: '',
   category: 'research',
@@ -157,55 +171,64 @@ const formData = ref({
   email: '',
   contactNumber: '',
   department: '',
+  isVisitor: false,
 });
 
-// Load saved data from formStore
+// Watch Visitor checkbox
+watch(
+  () => formData.value.isVisitor,
+  (isVisitor) => {
+    if (isVisitor) {
+      formData.value.department = 'Visitor';
+    } else {
+      formData.value.department = '';
+    }
+  }
+);
+
+// Load saved data
 onMounted(() => {
   formStore.loadSavedData();
-  // Copy data from store to local state
   formData.value = { ...formStore.basicInfo };
 });
 
-// Validate Form
+// Validation
 const validateForm = () => {
-  errors.value = {}; // Reset errors
+  errors.value = {};
   if (!formData.value.title) errors.value.title = "Title is required.";
   if (!formData.value.fullName) errors.value.fullName = "Full name is required.";
   if (!formData.value.email) errors.value.email = "Email is required.";
   if (!formData.value.contactNumber) errors.value.contactNumber = "Contact number is required.";
   if (!formData.value.department) errors.value.department = "Please select a department.";
-
-  return Object.keys(errors.value).length === 0; // If no errors, return true
+  return Object.keys(errors.value).length === 0;
 };
 
-// Save Draft to FormStore and Local Storage
+// Save draft
 const saveDraft = () => {
   formStore.saveBasicInfo(formData.value);
   alert("Draft saved successfully!");
 };
 
-// Submit Form and proceed to next step
+// Submit form
 const submitForm = async () => {
   if (!validateForm()) {
     alert("Please fill in all required fields.");
     return;
   }
-
   if (!user.value) {
     alert("You must be logged in to submit.");
     return;
   }
-
-  // Save to formStore and move to next step
   formStore.saveBasicInfo(formData.value);
   router.push('/cs2');
 };
 
-// Go Back to Previous Page
+// Go back
 const goBack = () => {
   router.go(-1);
 };
 </script>
+
 
 <style>
 /* Reset and Global Styles */

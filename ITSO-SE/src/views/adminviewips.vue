@@ -175,7 +175,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { db, auth } from '@/firebase';
-import { doc, getDoc, updateDoc, collection, addDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
 
 const route = useRoute();
@@ -190,7 +190,8 @@ const formData = ref({
   department: '',
   applicationType: '',
   uploadedDocuments: [],
-  fileURLs: null
+  fileURLs: null,
+  userId: '' // Added to store the user ID
 });
 
 const reviewStatus = ref('');
@@ -284,6 +285,7 @@ const submitComment = async () => {
       return;
     }
     
+    const now = new Date();
     const commentData = {
       submissionId: route.params.id,
       collectionName: submissionCollection,
@@ -291,16 +293,21 @@ const submitComment = async () => {
       userId: currentUser.uid,
       userEmail: currentUser.email,
       isAdmin: true, // Since this is the admin review page
-      timestamp: new Date()
+      timestamp: now
     };
     
     // Add comment to comments collection
     await addDoc(collection(db, 'comments'), commentData);
     
-    // Update submission with new comment flag
+    // Update submission with new comment flag and notification data
     await updateDoc(docRef, {
       hasNewComment: true,
-      lastCommentDate: new Date()
+      lastCommentDate: now,
+      lastCommentBy: 'admin',
+      lastCommentText: userComment.value.trim().substring(0, 50) + (userComment.value.length > 50 ? '...' : ''),
+      lastNotificationType: 'comment',
+      lastNotificationTime: now,
+      unreadAdminComment: true // Flag to show user there's an unread admin comment
     });
     
     userComment.value = '';
@@ -334,12 +341,17 @@ const submitForm = async () => {
       return;
     }
     
+    const now = new Date();
+    
     // Update the document with status, reason, reviewedAt AND lastStatusUpdate
     await updateDoc(docRef, {
       status: reviewStatus.value,
       reason: (reviewStatus.value === 'Rejected' || reviewStatus.value === 'Revision') ? reviewReason.value : '',
-      reviewedAt: new Date(),
-      lastStatusUpdate: new Date() // Add this line to update the status timestamp
+      reviewedAt: now,
+      lastStatusUpdate: now,
+      lastNotificationType: 'status',
+      lastNotificationTime: now,
+      read: false // Mark as unread so it shows up in notifications
     });
     
     // Add a system comment about the status change
@@ -354,7 +366,7 @@ const submitForm = async () => {
           userEmail: currentUser.email,
           isAdmin: true,
           isSystemMessage: true,
-          timestamp: new Date()
+          timestamp: now
         };
         
         await addDoc(collection(db, 'comments'), statusChangeComment);
@@ -408,6 +420,9 @@ const loadSubmission = async () => {
   
   const data = docSnap.data();
   
+  // Store userId for notification purposes
+  formData.value.userId = data.userId || '';
+  
   // Handle different document structures based on collection
   if (submissionCollection === 'competitions' || submissionCollection === 'submission_competition') {
     // Competition document format (from formStore.js)
@@ -419,7 +434,8 @@ const loadSubmission = async () => {
       contactNumber: data.contactNumber || '',
       department: data.department || '',
       applicationType: data.applicationType || 'Competition',
-      fileURLs: data.fileURLs || {}
+      fileURLs: data.fileURLs || {},
+      userId: data.userId || ''
     };
   } else {
     // Regular submission document format
@@ -431,6 +447,7 @@ const loadSubmission = async () => {
       contactNumber: data.contactNumber || '',
       department: data.department || '',
       applicationType: data.applicationType || 'IP Protection',
+      userId: data.userId || ''
     };
     
     // Handle uploaded documents

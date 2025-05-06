@@ -25,20 +25,43 @@
                     v-for="notif in limitedNotifications"
                     :key="notif.id"
                     class="notif-item"
-                    :class="{ unread: !notif.read }"
-                    @click="goToDetail(notif.id, notif.type)"
+                    :class="{ unread: !notif.read || notif.unreadAdminComment || notif.hasUnreadNotifications }"
+                    @click="goToDetail(notif.id, notif.type, notif.submissionId)"
                   >
                     <div class="notif-avatar">
-                      <i class="pi pi-user"></i>
+                      <!-- Show different icon based on notification type -->
+                      <i :class="notif.lastNotificationType === 'comment' || notif.type === 'Comment' ? 'pi pi-comments' : 'pi pi-user'"></i>
                     </div>
                     <div class="notif-content">
                       <div class="notif-title">
-                        <strong>"{{ notif.title }}"</strong> has been <span :class="['status-text', notif.status.toLowerCase()]">{{ notif.status }}</span>
+                        <!-- Comment Notification -->
+                        <template v-if="notif.type === 'Comment'">
+                          <strong>{{ notif.uploaderName }}</strong> commented on <strong>"{{ notif.title }}"</strong>: "{{ notif.commentText }}"
+                        </template>
+                        <!-- Status Update -->
+                        <template v-else-if="notif.lastNotificationType !== 'comment'">
+                          <strong>"{{ notif.title }}"</strong> 
+                          <span>
+                            has been <span :class="['status-text', notif.status.toLowerCase()]">{{ notif.status }}</span>
+                          </span>
+                        </template>
+                        <!-- Comment on Submission Notification -->
+                        <template v-else>
+                          <strong>"{{ notif.title }}"</strong> 
+                          <span>
+                            has a new comment
+                          </span>
+                        </template>
+                      </div>
+                      <div v-if="(notif.lastNotificationType === 'comment' && notif.lastCommentText) || (notif.type === 'Comment' && notif.commentText)" class="notif-comment-preview">
+                        "{{ notif.commentText || notif.lastCommentText }}"
                       </div>
                       <div class="notif-meta">
                         <span class="meta-tag">{{ notif.type }}</span>
                       </div>
-                      <div class="notif-time">{{ relativeTime(notif.uploadedAt, notif.lastStatusUpdate) }}</div>
+                      <div class="notif-time">
+                        {{ relativeTime(notif.uploadedAt, notif.lastNotificationTime || notif.lastStatusUpdate) }}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -128,6 +151,8 @@ const fetchNotifications = async () => {
   
   const submissionsCollection = collection(db, 'submissions');
   const competitionsCollection = collection(db, 'competitions');
+  const submission_competitionCollection = collection(db, 'submission_competition');
+  const notificationsCollection = collection(db, 'notifications'); // Add this line for comments
 
   // Listen to submissions collection filtered by userId
   onSnapshot(query(submissionsCollection, where('userId', '==', user.value.uid)), async (submissionSnapshot) => {
@@ -147,6 +172,15 @@ const fetchNotifications = async () => {
           status: data.status || 'For Revision',
           applicationType: data.applicationType || 'General',
           lastStatusUpdate: data.lastStatusUpdate || null,
+          // New comment notification fields
+          lastNotificationType: data.lastNotificationType || 'status',
+          lastNotificationTime: data.lastNotificationTime || data.lastStatusUpdate || null,
+          lastCommentText: data.lastCommentText || '',
+          unreadAdminComment: data.unreadAdminComment || false,
+          hasNewComment: data.hasNewComment || false,
+          lastCommentBy: data.lastCommentBy || null,
+          lastCommentDate: data.lastCommentDate || null,
+          hasUnreadNotifications: data.unreadAdminComment || !data.read
         };
       })
     );
@@ -169,71 +203,177 @@ const fetchNotifications = async () => {
             status: data.status || 'For Revision',
             applicationType: data.applicationType || 'General',
             lastStatusUpdate: data.lastStatusUpdate || null,
+            // New comment notification fields
+            lastNotificationType: data.lastNotificationType || 'status',
+            lastNotificationTime: data.lastNotificationTime || data.lastStatusUpdate || null,
+            lastCommentText: data.lastCommentText || '',
+            unreadAdminComment: data.unreadAdminComment || false,
+            hasNewComment: data.hasNewComment || false,
+            lastCommentBy: data.lastCommentBy || null,
+            lastCommentDate: data.lastCommentDate || null,
+            hasUnreadNotifications: data.unreadAdminComment || !data.read
           };
         })
       );
 
-      // Combine both submission and competition notifications
-      const allNotifs = [...submissionNotifs, ...competitionNotifs];
-      
-      // Sort notifications: prioritize recently updated statuses first, then by timestamp
-      notifications.value = allNotifs.sort((a, b) => {
-        // First compare lastStatusUpdate if available
-        if (a.lastStatusUpdate && b.lastStatusUpdate) {
-          const aTime = a.lastStatusUpdate.seconds ? a.lastStatusUpdate.seconds : a.lastStatusUpdate.toMillis ? a.lastStatusUpdate.toMillis() / 1000 : 0;
-          const bTime = b.lastStatusUpdate.seconds ? b.lastStatusUpdate.seconds : b.lastStatusUpdate.toMillis ? b.lastStatusUpdate.toMillis() / 1000 : 0;
-          return bTime - aTime; // Most recent status updates first
-        }
-        
-        // If only one has lastStatusUpdate, prioritize it
-        if (a.lastStatusUpdate) return -1;
-        if (b.lastStatusUpdate) return 1;
-        
-        // Otherwise fall back to uploadedAt
-        if (!a.uploadedAt || !b.uploadedAt) return 0;
-        const aTime = a.uploadedAt.seconds ? a.uploadedAt.seconds : a.uploadedAt.toMillis ? a.uploadedAt.toMillis() / 1000 : 0;
-        const bTime = b.uploadedAt.seconds ? b.uploadedAt.seconds : b.uploadedAt.toMillis ? b.uploadedAt.toMillis() / 1000 : 0;
-        return bTime - aTime;
+      // Listen to submission_competition collection filtered by userId if it exists
+      onSnapshot(query(submission_competitionCollection, where('userId', '==', user.value.uid)), async (submissionCompetitionSnapshot) => {
+        const submissionCompetitionNotifs = await Promise.all(
+          submissionCompetitionSnapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+            // Ensure timestamp is properly captured
+            const timestamp = data.createdAt || data.uploadedAt || data.submittedAt || new Date();
+            return {
+              id: docSnap.id,
+              title: data.title || 'Untitled Competition Submission',
+              uploadedAt: timestamp,
+              uploaderName: data.fullName || 'Unknown',
+              read: data.read || false,
+              userId: data.userId,
+              type: 'Competition Submission',
+              status: data.status || 'For Revision',
+              applicationType: data.applicationType || 'General',
+              lastStatusUpdate: data.lastStatusUpdate || null,
+              // New comment notification fields
+              lastNotificationType: data.lastNotificationType || 'status',
+              lastNotificationTime: data.lastNotificationTime || data.lastStatusUpdate || null,
+              lastCommentText: data.lastCommentText || '',
+              unreadAdminComment: data.unreadAdminComment || false,
+              hasNewComment: data.hasNewComment || false,
+              lastCommentBy: data.lastCommentBy || null,
+              lastCommentDate: data.lastCommentDate || null,
+              hasUnreadNotifications: data.unreadAdminComment || !data.read
+            };
+          })
+        );
+
+        // ADD THIS: Listen for comment notifications
+        onSnapshot(query(notificationsCollection, where('userId', '==', user.value.uid)), async (notificationSnapshot) => {
+          const commentNotifs = await Promise.all(
+            notificationSnapshot.docs.map(async (docSnap) => {
+              const data = docSnap.data();
+              if (data.type === 'comment') {
+                return {
+                  id: docSnap.id,
+                  title: data.title || 'Untitled Submission',
+                  uploadedAt: data.uploadedAt || data.createdAt || new Date(),
+                  uploaderName: data.uploaderName || 'Unknown',
+                  read: data.read || false,
+                  userId: data.userId,
+                  type: 'Comment',
+                  submissionId: data.submissionId,
+                  collectionName: data.collectionName,
+                  commentText: data.commentText || '',
+                  hasUnreadNotifications: !data.read
+                };
+              }
+              return null;
+            })
+          );
+
+          // Filter out null values
+          const filteredCommentNotifs = commentNotifs.filter(notif => notif !== null);
+
+          // Combine all notifications
+          const allNotifs = [...submissionNotifs, ...competitionNotifs, ...submissionCompetitionNotifs, ...filteredCommentNotifs];
+          
+          // Sort notifications: prioritize notifications by type, then recency
+          notifications.value = allNotifs.sort((a, b) => {
+            // First prioritize unread items
+            if ((a.unreadAdminComment || !a.read) && !(b.unreadAdminComment || !b.read)) return -1;
+            if (!(a.unreadAdminComment || !a.read) && (b.unreadAdminComment || !b.read)) return 1;
+            
+            // Next, prioritize by notification time
+            const aTime = getTimeValue(a.lastNotificationTime || a.lastStatusUpdate || a.uploadedAt);
+            const bTime = getTimeValue(b.lastNotificationTime || b.lastStatusUpdate || b.uploadedAt);
+            return bTime - aTime; // Most recent notifications first
+          });
+        });
       });
     });
   });
 };
 
-const unreadCount = computed(() =>
-  notifications.value.filter((notif) => !notif.read && notif.status.toLowerCase() !== 'pending').length
-);
+// Helper function to get timestamp value consistently
+const getTimeValue = (timestamp) => {
+  if (!timestamp) return 0;
+  
+  if (timestamp.seconds) {
+    return timestamp.seconds;
+  } else if (typeof timestamp.toMillis === 'function') {
+    return timestamp.toMillis() / 1000;
+  } else if (timestamp instanceof Date) {
+    return timestamp.getTime() / 1000;
+  } else if (typeof timestamp === 'number') {
+    return timestamp / 1000;
+  }
+  
+  return 0;
+};
+
+const unreadCount = computed(() => {
+  return notifications.value.filter((notif) => {
+    // Count as unread if:
+    // 1. The notification is unread AND the status is not pending, OR
+    // 2. There is an unread admin comment, OR
+    // 3. It's a direct comment notification that's unread
+    return ((!notif.read && notif.status?.toLowerCase() !== 'pending') || 
+           notif.unreadAdminComment || 
+           (notif.type === 'Comment' && !notif.read));
+  }).length;
+});
 
 const limitedNotifications = computed(() => {
   // Filter out pending notifications and take only up to 10
   return notifications.value
-    .filter(notif => notif.status.toLowerCase() !== 'pending')
+    .filter(notif => (notif.status?.toLowerCase() !== 'pending') || 
+                      notif.unreadAdminComment || 
+                      notif.type === 'Comment')
     .slice(0, 10);
 });
 
-const goToDetail = async (id, type) => {
+const goToDetail = async (id, type, submissionId) => {
   try {
-    // Find the collection based on the notification
-    const notification = notifications.value.find(n => n.id === id);
-    let collectionName = notification?.type === 'Competition' ? 'competitions' : 'submissions';
-    
-    // Update the notification to be read
-    const notifRef = doc(db, collectionName, id);
-    await updateDoc(notifRef, { 
-      read: true,
-      lastStatusUpdate: new Date() // Add timestamp when user reads the notification
-    });
-    
-    // Navigate to the user view page instead of admin page
-    router.push(`/userviewips/${id}`);
+    if (type === 'Comment') {
+      // Update the notification read status for comment notifications
+      const notifRef = doc(db, 'notifications', id);
+      await updateDoc(notifRef, { read: true });
+      
+      // Navigate to the user view page with the related submission ID
+      router.push(`/userviewips/${submissionId || id}`);
+    } else {
+      // Find the notification object
+      const notification = notifications.value.find(n => n.id === id);
+      if (!notification) return;
+      
+      // Determine the collection based on the notification type
+      let collectionName = 'submissions'; // default
+      if (notification.type === 'Competition') {
+        collectionName = 'competitions';
+      } else if (notification.type === 'Competition Submission') {
+        collectionName = 'submission_competition';
+      }
+      
+      // Update the notification to be read
+      const notifRef = doc(db, collectionName, id);
+      await updateDoc(notifRef, { 
+        read: true,
+        unreadAdminComment: false, // Mark admin comments as read
+        lastReadTime: new Date() // Add timestamp when user reads the notification
+      });
+      
+      // Navigate to the user view page
+      router.push(`/userviewips/${id}`);
+    }
   } catch (error) {
     console.error("Error updating notification:", error);
   }
 };
 
 // Fixed relativeTime function to properly handle Firebase timestamps and respect status updates
-const relativeTime = (timestamp, lastStatusUpdate) => {  
-  // If we have a lastStatusUpdate, use that instead to show the most recent activity
-  const targetTimestamp = lastStatusUpdate || timestamp;
+const relativeTime = (timestamp, lastNotificationTime) => {  
+  // If we have a lastNotificationTime, use that instead to show the most recent activity
+  const targetTimestamp = lastNotificationTime || timestamp;
   
   // Handle case when timestamp is undefined or null
   if (!targetTimestamp) {
@@ -268,7 +408,7 @@ const relativeTime = (timestamp, lastStatusUpdate) => {
     return 'Just now';
   }
 
-  // If the notification status was recently updated (in last 5 minutes), always show "Just now"
+  // If the notification was recently updated (in last 5 minutes), always show "Just now"
   const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
   if (timeMillis > fiveMinutesAgo) {
     return 'Just now';
